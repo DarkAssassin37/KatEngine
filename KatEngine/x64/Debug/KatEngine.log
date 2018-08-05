@@ -1,4 +1,0 @@
-﻿  main.cpp
-main.obj : error LNK2019: unresolved external symbol glfwInit referenced in function main
-D:\Projects\C++\KatEngine\Libs\glfw3.lib : warning LNK4272: library machine type 'x86' conflicts with target machine type 'x64'
-D:\Projects\C++\KatEngine\x64\Debug\KatEngine.exe : fatal error LNK1120: 1 unresolved externals
