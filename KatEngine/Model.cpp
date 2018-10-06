@@ -43,26 +43,26 @@ Model::Model(const char* filepath)
 
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertCurr);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertNext);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_vertNext);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsCurr);
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsCurr);
+	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsNext);
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsNext);
-	glEnableVertexAttribArray(4);
-	glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_uvs);
-	glEnableVertexAttribArray(5);
-	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(4);
+	glVertexAttribPointer(4, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
 
-	if(meshes[0].uvs.size() > 0)
+	if(!meshes[0].uvs.empty())
 		glBufferData(GL_ARRAY_BUFFER, meshes[0].uvs.size() * sizeof(vec2), &meshes[0].uvs[0], GL_STATIC_DRAW);
 
 

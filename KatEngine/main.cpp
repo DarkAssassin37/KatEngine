@@ -139,19 +139,33 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //auto-resize
 
 	Model bolly("pukman.obj");
-	bolly.loadMeshes(0, 1);
+	bolly.loadMeshes(1, 0);
 
 	float interp = 0.0f;
+
+	double lastTime = glfwGetTime();
+	int nbFrames = 0;
 	/*Render loop*/
 	while (!glfwWindowShouldClose(window))
 	{
+		double currentTime = glfwGetTime();
+		nbFrames++;
+		if (currentTime - lastTime >= 1.0) { // If last prinf() was more than 1 sec ago
+											 // printf and reset timer
+			printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+			nbFrames = 0;
+			lastTime += 1.0;
+		}
+
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		interp += 0.02f;
+		interp += 0.0002f;
 		if (interp > 1.0f) interp = 0.0f;
 
 		mat4 cam = getCamera();
-		glUniformMatrix4fv(0, 16, GL_FALSE, 0);
+		
+		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &cam[0][0]);
+		glUniform1f(glGetUniformLocation(progShader.id, "lerp_value"), interp);
 
 		bolly.draw();
 
