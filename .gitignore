@@ -12,6 +12,5 @@
 *.sdf
 *.user
 *.suo
-
-Intermediates/
-ipch/
+*.ipch
+*.opendb
