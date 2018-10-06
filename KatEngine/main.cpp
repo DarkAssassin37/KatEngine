@@ -138,83 +138,22 @@ int main()
 	glViewport(0, 0, 640, 480);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //auto-resize
 
-	/*Prepare the traingle*/
-	vector<vec3> vertices = {
-		vec3(-0.5f, -0.5f, 0.0f),
-		vec3(0.5f, -0.5f, 0.0f),
-		vec3(0.0f,  0.5f, 0.0f)
-	};
+	Model bolly("pukman.obj");
+	bolly.loadMeshes(0, 1);
 
-	vector<vec3> colors = {
-		vec3(0.0f, 0.8f, 0.9f),
-		vec3(0.9f, 0.6f, 0.1f),
-		vec3(0.8f,  0.0f, 0.8f)
-	};
-
-	vector<vec3> transVertices;
-
-
-	GLuint vbo = 0;
-	glGenBuffers(1, &vbo);
-
-	GLuint vbo_cols = 0;
-	glGenBuffers(1, &vbo_cols);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	//glEnableVertexAttribArray(0);
-	
-
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-
-
+	float interp = 0.0f;
 	/*Render loop*/
 	while (!glfwWindowShouldClose(window))
 	{
 		glClear(GL_COLOR_BUFFER_BIT);
 
-
+		interp += 0.02f;
+		if (interp > 1.0f) interp = 0.0f;
 
 		mat4 cam = getCamera();
+		glUniformMatrix4fv(0, 16, GL_FALSE, 0);
 
-		transVertices.clear();
-		transVertices.reserve(vertices.size());
-		for (vec3 v : vertices)
-		{
-			transVertices.emplace_back(cam * vec4(v, 1));
-		}
-
-
-
-
-
-		glBindVertexArray(vao);
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glEnableVertexAttribArray(0);
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_cols);
-		glEnableVertexAttribArray(1);
-		glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		glBindVertexArray(0);
-
-
-		glBindVertexArray(vao);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
-		glBufferData(GL_ARRAY_BUFFER, transVertices.size() * sizeof(vec3), &transVertices[0], GL_DYNAMIC_DRAW);
-		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		//glEnableVertexAttribArray(0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, vbo_cols);
-		glBufferData(GL_ARRAY_BUFFER, colors.size() * sizeof(vec3), &colors[0], GL_DYNAMIC_DRAW);
-		//glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-		//glEnableVertexAttribArray(1);
-
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+		bolly.draw();
 
 
 		glfwSwapBuffers(window);

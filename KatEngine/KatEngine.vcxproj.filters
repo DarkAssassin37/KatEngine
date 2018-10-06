@@ -66,5 +66,9 @@
   <ItemGroup>
     <None Include="base.vert" />
     <None Include="base.frag" />
+    <None Include="Pukman.mtl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Object Include="Pukman.obj" />
   </ItemGroup>
 </Project>

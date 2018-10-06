@@ -25,8 +25,8 @@ Model::Model(const char* filepath)
 		exit(1);
 	}
 
-	/*for (unsigned int i = 0; i < shapes.size(); i++)
-		meshes.emplace_back(shapes[i]);*/
+	for (unsigned int i = 0; i < shapes.size(); i++)
+		meshes.emplace_back(shapes[i]);
 
 	vao = vbo_vertCurr = vbo_vertNext = vbo_normalsCurr = vbo_normalsNext = vbo_uvs = 0;
 
@@ -61,7 +61,9 @@ Model::Model(const char* filepath)
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_uvs);
 	glEnableVertexAttribArray(5);
 	glVertexAttribPointer(5, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
-	glBufferData(GL_ARRAY_BUFFER, meshes[0].uvs.size() * sizeof(vec2), &meshes[0].uvs[0], GL_STATIC_DRAW);
+
+	if(meshes[0].uvs.size() > 0)
+		glBufferData(GL_ARRAY_BUFFER, meshes[0].uvs.size() * sizeof(vec2), &meshes[0].uvs[0], GL_STATIC_DRAW);
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -91,7 +93,11 @@ void Model::loadMeshes(int current, int next)
 
 }
 
-void Model::setInterpolation(float interp)
-{
 
+void Model::draw()
+{
+	glBindVertexArray(vao);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+
+	glDrawElements(GL_TRIANGLES, meshes[0].indices.size(), GL_UNSIGNED_INT, NULL);
 }

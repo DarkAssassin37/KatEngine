@@ -18,6 +18,7 @@ public:
 
 	void loadMeshes(int current, int next);
 	void setInterpolation(float interp);
+	void draw();
 
 private:
 	const char* filepath;
