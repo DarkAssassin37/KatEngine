@@ -2,7 +2,7 @@
 #include <vector>
 #include "Mesh.h"
 #include <glm/glm.hpp>
-
+#include <assimp/scene.h>
 
 
 class Model
@@ -22,5 +22,6 @@ public:
 
 private:
 	const char* filepath;
+	void processNode(aiNode* node, const aiScene* scene);
 };
 

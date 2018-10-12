@@ -4,29 +4,24 @@
 #include <sstream>
 #include <iostream>
 #include <glad/glad.h>
-#include <tiny_obj_loader.h>
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+#include "messages.h"
 
 using namespace glm;
 
 Model::Model(const char* filepath)
 {
 	this->filepath = filepath;
-	std::vector<tinyobj::shape_t> shapes;
-	std::vector<tinyobj::material_t> materials;
+	
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(filepath, aiProcess_Triangulate | aiProcess_FlipUVs | aiProcess_CalcTangentSpace);
 
-	std::string err;
-	bool ret = LoadObj(shapes, materials, err, filepath);
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+		fatal_error(importer.GetErrorString());
 
-	if (!err.empty()) { // `err` may contain warning message.
-		std::cerr << err << std::endl;
-	}
-
-	if (!ret) {
-		exit(1);
-	}
-
-	for (unsigned int i = 0; i < shapes.size(); i++)
-		meshes.emplace_back(shapes[i]);
+	processNode(scene->mRootNode, scene);
 
 	vao = vbo_vertCurr = vbo_vertNext = vbo_normalsCurr = vbo_normalsNext = vbo_uvs = 0;
 
@@ -71,6 +66,20 @@ Model::Model(const char* filepath)
 
 }
 
+void Model::processNode(aiNode *node, const aiScene *scene)
+{
+	// process all the node's meshes (if any)
+	for (unsigned int i = 0; i < node->mNumMeshes; i++)
+	{
+		aiMesh *mesh = scene->mMeshes[node->mMeshes[i]];
+		meshes.emplace_back(mesh, scene);
+	}
+	// then do the same for each of its children
+	for (unsigned int i = 0; i < node->mNumChildren; i++)
+	{
+		processNode(node->mChildren[i], scene);
+	}
+}
 
 
 Model::~Model()
@@ -86,9 +95,11 @@ void Model::loadMeshes(int current, int next)
 	glBufferData(GL_ARRAY_BUFFER, meshes[next].vertices.size() * sizeof(vec3), &meshes[next].vertices[0], GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsCurr);
+	if(!meshes[current].normals.empty())
 	glBufferData(GL_ARRAY_BUFFER, meshes[current].normals.size() * sizeof(vec3), &meshes[current].normals[0], GL_DYNAMIC_DRAW);
 
 	glBindBuffer(GL_ARRAY_BUFFER, vbo_normalsNext);
+	if (!meshes[next].normals.empty())
 	glBufferData(GL_ARRAY_BUFFER, meshes[next].normals.size() * sizeof(vec3), &meshes[next].normals[0], GL_DYNAMIC_DRAW);
 
 }
