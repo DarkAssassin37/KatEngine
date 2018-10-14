@@ -32,7 +32,6 @@ std::vector<Texture> loadMaterialTextures(aiMaterial *mat, aiTextureType type, s
 		aiString str; 
 		mat->GetTexture(type, i, &str);
 		
-		std::cout << "break;";
 
 		/*Texture texture;
 		//texture.id = TextureFromFile(str.C_Str(), directory);

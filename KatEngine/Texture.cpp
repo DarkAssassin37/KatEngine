@@ -15,10 +15,11 @@ Texture::Texture(const char * path)
 		fatal_error("Couldn't load texture image");
 	
 	glGenTextures(1, &id);
+	//glActiveTexture(GL_TEXTURE0);//????
 	glBindTexture(GL_TEXTURE_2D, id);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-	glGenerateMipmap(GL_TEXTURE_2D);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	//glGenerateMipmap(GL_TEXTURE_2D);
 
 	stbi_image_free(data);
 
@@ -28,15 +29,49 @@ Texture::Texture(const char * path)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
+Texture::Texture(int width, int height)
+{
+	this->width = width;
+	this->height = height;
 
+	glGenTextures(1, &id);
+	glBindTexture(GL_TEXTURE_2D, id);
+
+	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * 3);
+	memset(data, 0, sizeof(unsigned char) * width * height * 3);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+	//glGenerateMipmap(GL_TEXTURE_2D);
+
+	free(data);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
 
 
 Texture::~Texture()
 {
 }
 
-void Texture::bindTexture(int texID)
+void Texture::bindTexture(int unit)
 {
-	glActiveTexture(GL_TEXTURE0 + texID);
-	glBindTexture(GL_TEXTURE0 + texID, id);
+	glActiveTexture(GL_TEXTURE0 + unit);
+	glBindTexture(GL_TEXTURE_2D, id);
+}
+
+void Texture::bindImage(int unit, int access)
+{
+	/*
+	 * GLuint unit,
+ 	GLuint texture,
+ 	GLint level,
+ 	GLboolean layered,
+ 	GLint layer,
+ 	GLenum access,
+ 	GLenum format);
+	 */
+	glBindImageTexture(unit, id, 0, GL_FALSE, 0, access, GL_RGBA32F);
 }

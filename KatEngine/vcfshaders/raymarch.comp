@@ -1,0 +1,51 @@
+#version 430 core
+
+layout(binding = 0, rgba32f) uniform image2D framebuffer;
+
+// The camera specification
+layout(location = 0) uniform vec3 eye;
+layout(location = 1) uniform vec3 ray00;
+layout(location = 2) uniform vec3 ray10;
+layout(location = 3) uniform vec3 ray01;
+layout(location = 4) uniform vec3 ray11;
+
+float sdSphere( vec3 p, float s )
+{
+  return length(p)-s;
+}
+
+vec4 trace(vec3 origin, vec3 dir) {
+
+  /*if (intersectBoxes(origin, dir, i)) {
+    return vec4(0.0, 1.0, 0.0, 1.0);
+    vec4 gray = vec4(i.bi / 10.0 + 0.8);
+    return vec4(gray.rgb, 1.0);
+  }*/
+  vec3 cp = origin;
+  float cdist = 0.0;
+  for(int i = 0; i < 3; i++)
+  {
+      cdist = sdSphere(cp, 1.0);
+      if(cdist < 0.001)
+          return vec4(0.0, 1.0, 0.0, 1.0);
+
+      cp = origin + cdist * dir;
+  }
+
+  return vec4(1.0, 0.0, 0.0, 1.0);
+}
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+void main(void) {
+  ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(framebuffer);
+  if (pix.x >= size.x || pix.y >= size.y) {
+    return;
+  }
+  vec2 pos = vec2(pix) / vec2(size.x, size.y);
+  vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
+  dir = normalize(dir);
+  vec4 color = vec4(clamp(abs(ray00.x*100000),0.0,1.0),0.0,0.0, 1.0);// trace(eye, dir);
+  imageStore(framebuffer, pix, color);
+}

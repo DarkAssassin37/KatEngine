@@ -13,6 +13,7 @@ public:
 
 	unsigned int vao, vbo_vertCurr, vbo_vertNext, vbo_normalsCurr, vbo_normalsNext, vbo_uvs, ebo;
 
+	Model();
 	Model(const char* filepath);
 	~Model();
 

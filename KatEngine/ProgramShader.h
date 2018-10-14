@@ -7,8 +7,11 @@ public:
 	GLuint id;
 
 	ProgramShader(GLuint shader1, GLuint shader2);
+	ProgramShader(GLuint shader1);
 	~ProgramShader();
 
 	void use() const;
+
+	operator GLuint() const;
 };
 

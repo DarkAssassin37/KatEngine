@@ -17,3 +17,4 @@ inline char* loadStringFromFile(const char*const filepath)
 	}
 	return output;
 }
+

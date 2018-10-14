@@ -16,7 +16,7 @@ void main()
 	vec3 cB = vec3(0, 0, 247) * dot(normal, vec3(0,1,0));
 	vec3 cRGB = cR + cG + cB + vec3(80, 80, 80);
 	cRGB /= 255f; cRGB = clamp(cRGB, 0f, 1f);
-	color = texture(t_normal, texCoord);// + vec4(cRGB, 0.0f);
+	color = texture(t_albedo, texCoord);// + vec4(cRGB, 0.0f);
 	//color = vec4(normal, 1.0f);
 
 }

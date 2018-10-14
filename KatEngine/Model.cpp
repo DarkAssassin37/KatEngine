@@ -11,6 +11,10 @@
 
 using namespace glm;
 
+Model::Model()
+{
+}
+
 Model::Model(const char* filepath)
 {
 	this->filepath = filepath;

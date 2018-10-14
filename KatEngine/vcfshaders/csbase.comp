@@ -2,6 +2,7 @@
 
 uniform float roll;
 uniform image2D destTex;
+uniform sampler2D srcTex;
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
@@ -9,6 +10,11 @@ void main() {
 
   ivec2 storePos = ivec2(gl_GlobalInvocationID.xy);
   float localCoef = length(vec2(ivec2(gl_LocalInvocationID.xy)-8)/8.0);
-  float globalCoef = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + roll)*0.5;
-  imageStore(destTex, storePos, vec4(1.0-globalCoef*localCoef, 0.0, 0.0, 0.0));
+  float globalCoefr = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + roll)*0.5;
+  float globalCoefg = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + 0.8f*roll)*0.5;
+  float globalCoefb = sin(float(gl_WorkGroupID.x+gl_WorkGroupID.y)*0.1 + 1.2f*roll)*0.5;
+
+  vec4 finalColor = 0.5f * vec4(1.0-globalCoefr*localCoef, 1.0-globalCoefg*localCoef, 1.0-globalCoefb*localCoef, 0.0)
+                  + 0.5f * texture(srcTex, vec2(storePos)/2048.0f);
+  imageStore(destTex, storePos, finalColor);
 }

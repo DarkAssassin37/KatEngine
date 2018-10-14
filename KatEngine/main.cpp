@@ -5,22 +5,22 @@
 #include <ctime>
 #include <string>
 #include "utils/io.h"
-#include "Shaders/FragmentShader.h"
 #include "ProgramShader.h"
-#include "Shaders/VertexShader.h"
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include <vector>
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "Model.h"
 #include "Texture.h"
+#include "Shader.h"
+#include "Plane.h"
 
 
 using namespace std;
 using namespace glm;
 
-float winWidth = 640.0f, winHeight = 480.0f;
-float camDist = 10.0f;
+float winWidth = 640.0f, winHeight = 640.0f;
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	winWidth = width;
@@ -69,18 +69,20 @@ void testingStuff()
 	vec3 c=  cross(a, b);
 }
 
+float camDist = 4.0f;
 float cam_pitch = 0.0f, cam_yaw = 0.0f;
+vec3 cam_pos(0,0,1);
 
 mat4 getCamera()
 {
-	
+
 	mat4 cam_rot = rotate(glm::identity<mat4>(), 2* pi<float>() * cam_yaw, vec3(0, 1, 0));
 	cam_rot = rotate(cam_rot, pi<float>() * cam_pitch, vec3(1, 0, 0));
-	vec3 camPos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
+	cam_pos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
 	vec3 camUp = vec3(cam_rot * vec4(0, 1, 0, 1));
 
 	mat4 projection = perspective(90.0f, winWidth/winHeight, 0.1f, 100.0f);
-	mat4 view = lookAt(camPos, vec3(0, 0, 0), camUp);
+	mat4 view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
 	return projection * view;
 }
 
@@ -107,36 +109,41 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 
 double lxpos, lypos;
+double a_xpos = 0.0f, a_ypos = 0.0f;
+float mouseSensitivity = 0.001;
 
 static void cursor_pos_callback(GLFWwindow* window, double xpos, double ypos)
 {
-	if (!captured) return;
 
-	lxpos = xpos;
-	lypos = ypos;
-
-	double a_ypos = 0.0f;
-	double a_xpos = 0.0f;
-
-	double dy = ypos - lypos;
-
-
-	if (abs(ypos) > winHeight)
-	{
-		if (dy > 0)
-			a_ypos = winHeight;
-		else
-			a_ypos = winHeight - dy;
+	if (!captured) {
+		lxpos = xpos;
+		lypos = ypos;
+		return;
 	}
 
-	float amount = 1;
-	cam_pitch = -(a_ypos / winHeight - 0.5) * amount;
-	cam_yaw = -(a_xpos / winWidth - 0.5) * amount;
+
+	double dy = lypos - ypos;//inverted Y
+	double dx = lxpos - xpos;//inverted X
+
+
+	a_ypos += dy * mouseSensitivity;
+	a_xpos += dx * mouseSensitivity;
+
+	if (a_ypos > 0.5f)
+		a_ypos = 0.5f;
+	if (a_ypos < -0.5f)
+		a_ypos = -0.5f;
+
+	cam_pitch = a_ypos;
+	cam_yaw = a_xpos;
 	/*if (cam_pitch > 0.5)
 		cam_pitch = 0.5;
 
 	if (cam_pitch < -0.5)
 		cam_pitch = -0.5;*/
+
+	lxpos = xpos;
+	lypos = ypos;
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
@@ -157,6 +164,10 @@ void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 }
 
 
+void glUniform3fg(int location, vec3 values)
+{
+	glUniform3f(location, values.x, values.y, values.z);
+}
 
 int main()
 {
@@ -172,7 +183,7 @@ int main()
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	/*Now let's make a windows and get its context*/
-	GLFWwindow* window = glfwCreateWindow(640, 480, "My Title", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(640, 640, "My Title", NULL, NULL);
 
 	if (window == NULL)
 		fatal_error("Failed to create GLFW window");
@@ -188,42 +199,52 @@ int main()
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		fatal_error("Failed to initialize GLAD");
 
+	glViewport(0, 0, 640, 640);
+	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+
+	glEnable(GL_DEPTH_TEST);
 
 	/*Prepare the battlefield*/
 	/*Vertex Shader*/
-	VertexShader vertShader("base.vert");
+	Shader vertShader("vcfshaders\\base.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
-	FragmentShader fragShader("base.frag");
+	Shader fragShader("vcfshaders\\base.frag", Shader::FRAGMENT_SHADER);
+
+	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
 
 	/*Final Program*/
-	ProgramShader progShader((GLuint)vertShader, (GLuint)fragShader);
+	ProgramShader progShader(vertShader, fragShader);
+
+	ProgramShader csprogShader(compShader);
 
 	/*We finally get to use it*/
-	progShader.use();
 
 
-	glViewport(0, 0, 640, 480);
-	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback); //auto-resize
 
-	Model bolly("Models\\plane.obj");
-	bolly.loadMeshes(0, 0);
+
+
+	/*Model bolly("Models\\sphere.obj");
+	bolly.loadMeshes(0, 0);*/
+
+	Plane plane;
 
 	float interp = 1.0f;
 
 	double lastTime = glfwGetTime();
 	int nbFrames = 0;
 
-	glEnable(GL_DEPTH_TEST);
 
 
 	Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
+	Texture texbl(2048, 2048);
 
+	mat4 passThroughcam = glm::identity<mat4>();
 	/*Render loop*/
 	while (!glfwWindowShouldClose(window))
 	{
-		double currentTime = glfwGetTime();
+		float currentTime = glfwGetTime();
 		nbFrames++;
 
 		if (currentTime - lastTime >= 1.0) { 
@@ -232,21 +253,49 @@ int main()
 			lastTime += 1.0;
 		}
 
-		tex.bindTexture(0);
-		tex.bindTexture(1);
+		interp += 0.002f;
+		//if (interp > 2.0f) interp = 0.0f;
 
+		texbl.bindImage(0);
+
+		mat4 cam = getCamera();
+
+		mat4 invcam = inverse(cam);
+
+		vec4 calc = invcam * vec4(-1, -1, 0, 1); calc /= calc.w;
+		vec3 ray00 = vec3(calc);
+		calc = invcam * vec4(-1, 1, 0, 1); calc /= calc.w;
+		vec3 ray01 = vec3(calc);
+		calc = invcam * vec4(1, -1, 0, 1); calc /= calc.w;
+		vec3 ray10 = vec3(calc);
+		calc = invcam * vec4(1, 1, 0, 1); calc /= calc.w;
+		vec3 ray11 = vec3(calc);
+		//ray00 /= ray00.w;
+		//ray00 -= cam_pos;
+
+		glUseProgram(csprogShader);
+		//glUniform1f(glGetUniformLocation(csprogShader, "roll"), interp*10);
+		auto loc = glGetUniformLocation(csprogShader, "eye");
+		glUniform3fg(0, cam_pos);
+		glUniform3fg(1, ray01 - cam_pos);
+		glUniform3fg(2, ray00 - cam_pos);
+		glUniform3fg(3, ray11 - cam_pos);
+		glUniform3fg(4, ray10 - cam_pos);
+		glDispatchCompute(2048 / 8 , 2048 / 8, 1); // 512^2 threads in blocks of 16^2*/
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		interp += 0.002f;
-		if (interp > 2.0f) interp = 0.0f;
+		texbl.bindTexture(0);
 
-		mat4 cam = getCamera();
-		
-		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &cam[0][0]);
-		glUniform1f(glGetUniformLocation(progShader.id, "lerp_value"), interp > 1.0f ? 2 - interp : interp);
 
-		bolly.draw();
+
+		progShader.use();
+
+		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &passThroughcam[0][0]);
+		glUniform1f(glGetUniformLocation(progShader, "lerp_value"), interp > 1.0f ? 2 - interp : interp);
+		//glUniform1f(glGetUniformLocation(progShader, "time"), currentTime);
+
+		plane.draw();
 
 
 		glfwSwapBuffers(window);
