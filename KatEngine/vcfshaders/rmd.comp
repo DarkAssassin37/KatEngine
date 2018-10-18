@@ -1,6 +1,7 @@
 #version 430 core
 #define deltaN 0.01
 #define delta 0.0001
+#define deltaAway 0.01
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
 layout(location = 0) uniform vec3 eye;
@@ -138,19 +139,18 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  dDist = dDist * dDist;
 		  lastHit = tdist;
 
-		  //float blend = max(1.0, 1.0 / dDist);
-		  //blend = 1.0;
-		  //finalColor = first * currColor + (1.0-first) * (currColor * blend);// + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
-		  
-		  finalColor = clamp(illum, 0.0, 1.0) * currColor;
-		  //first = min(0.0, first);
+		  float blend = max(1.0, 1.0 / dDist);
+		  blend = 0.2;
+		  finalColor = first * clamp(illum, 0.0, 1.0) * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+
+		  first = min(0.0, first);
 		  
 		  dir = normalize(reflect(dir, norm));
-		  cp = cp + cdist * dir;
+		  cp = cp + deltaAway * dir;//run away from the current point to avoid multiple tiny iterations
 		  
-		 if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
-			break;
-			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.9), 1.0);//hit distance, 
+		 //if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
+			//break;
+			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
 			//return vec4((norm + 1.0) * 0.5 , 1.0);//hit normal
 			//return vec4((dir + 1.0) * 0.5 , 1.0);//hit new direction
