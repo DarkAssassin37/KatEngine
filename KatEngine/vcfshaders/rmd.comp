@@ -1,6 +1,6 @@
 #version 430 core
-#define deltaN 0.1
-#define delta 0.1
+#define deltaN 0.01
+#define delta 0.0001
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
 layout(location = 0) uniform vec3 eye;
@@ -44,9 +44,9 @@ float differenceSDF(float distA, float distB) {
 //scDist(vec3 p) must have the same objects and parameters as scDist(vec3 p, out vec3 color)
 float scDist(vec3 p)
 {	
-	float minDist = differenceSDF(
-						sdCeby(p, vec3(0,0.5,0), 1.0),
-						sdSphere(p, vec3(0,0.5,0), 1.3)
+	float minDist = intersectSDF(
+						sdCeby(p, vec3(0,0.0,0), 1.0),
+						sdSphere(p, vec3(0,0.0,0), 1.3)
 					);
 
 	minDist = min(minDist, sdInfiniplane(p, vec3(0,-1.0,0), vec3(0,1,0)));
@@ -64,26 +64,23 @@ float scDist(vec3 p, out vec3 color)
 
 	//object
 	float minDist = intersectSDF(
-						sdCeby(p, vec3(0,0.5,0), 1.0),
-						sdSphere(p, vec3(0,0.5,0), 1.3)
+						sdCeby(p, vec3(0,0.0,0), 1.0),
+						sdSphere(p, vec3(0,0.0,0), 1.3)
 					);
 	//if its ditance is used update the final color with its color
-	if(minDist < lastminDist){
+	if(minDist < lastminDist)
 		finalColor = vec3(1.0,1.0,1.0) * 0.8;
-		lastminDist = minDist;
-	}
+	lastminDist = minDist;
 
-	minDist = min(minDist, sdInfiniplane(p, vec3(0,-0.5,0), vec3(0,1,0)));
-	if(minDist < lastminDist){
+	minDist = min(minDist, sdInfiniplane(p, vec3(0,-1.0,0), vec3(0,1,0)));
+	if(minDist < lastminDist)
 		finalColor = vec3(1, 0.509, 0.019);
-		lastminDist = minDist;
-	}
+	lastminDist = minDist;
 
 	minDist = min(minDist, sdSphere(p, vec3(0, 3.0,0), 1.0));
-	if(minDist < lastminDist){
+	if(minDist < lastminDist)
 		finalColor = vec3(10, 0, 0);
-		lastminDist = minDist;
-	}
+	lastminDist = minDist;
 
 	color = finalColor;
 	return minDist;
@@ -110,7 +107,7 @@ vec4 trace(vec3 origin, vec3 dir) {
   
   float lastHit = 0.0;//last hit distance
   vec3 finalColor = vec3(0.08, 0.0, 0.08);
-  vec3 currColor;//current object(closest one) color
+  vec3 currColor = vec3(0.8,0.5,0.2);//current object(closest one) color
   float first = 1.0;
   float dDist = 0;//distance covered by taking the last step
   float collisions = 0.0;//number of collisions so far
@@ -153,7 +150,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 			first = min(0.0, first);
 		  */
 		  
-		  if(collisions > 1.5f)//0.5 = first hit, 1.5 = second hit, etc.
+		  if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
 			//break;
 			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
