@@ -101,6 +101,7 @@ vec3 normal(vec3 p){
 vec4 trace(vec3 origin, vec3 dir) {
 
   //return vec4(0.88, 0.0, 0.08, 1.0);
+  vec3 camdir = dir;
   vec3 cp = origin;//current point
   float cdist = 0.0;//current distance from current point to closest surface
   float tdist = 0.0;//total distance travelledby the ray
@@ -112,20 +113,22 @@ vec4 trace(vec3 origin, vec3 dir) {
   float dDist = 0;//distance covered by taking the last step
   float collisions = 0.0;//number of collisions so far
 
-  for(int i = 0; i < 1000 && tdist < 200.0 ; i++)
+  for(int i = 0; i < 100 && tdist < 20.0 ; i++)
   {
       cdist = scDist(cp, currColor);
+	  cp = cp + cdist * dir;
+	  tdist += cdist;
+
 	  vec3 norm = normal(cp);
+
 
 	  if(currColor.x > 1.0)//special coloring mode for normals
 		currColor = (norm + 1.0) * 0.5;
 
-	  float illum = max(1.0, dot(norm, vec3(1.0,1.0,0.2)));
+	  float illum = min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
 
       if(cdist < delta)//close enough to an object consider it a collision
 	  {
-		  
-		  //return vec4((norm + 1.0) * 0.5 , 1.0); //normals
 
 		  collisions += 1.0;
 
@@ -136,30 +139,24 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  lastHit = tdist;
 
 		  //float blend = max(1.0, 1.0 / dDist);
-		 // blend = 1.0;
-		  //finalColor = first * currColor;// + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+		  //blend = 1.0;
+		  //finalColor = first * currColor + (1.0-first) * (currColor * blend);// + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+		  
+		  finalColor = clamp(illum, 0.0, 1.0) * currColor;
+		  //first = min(0.0, first);
 		  
 		  dir = normalize(reflect(dir, norm));
-
-
-		  /*if(first < 1.0) 
-			return vec4(finalColor, 1.0);
-		  else
-			finalColor *= illum;
-		
-			first = min(0.0, first);
-		  */
+		  cp = cp + cdist * dir;
 		  
-		  if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
-			//break;
-			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
+		 if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
+			break;
+			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.9), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
-			return vec4((norm + 1.0) * 0.5 , 1.0);//hit normal
+			//return vec4((norm + 1.0) * 0.5 , 1.0);//hit normal
 			//return vec4((dir + 1.0) * 0.5 , 1.0);//hit new direction
 	  }
 
-	  tdist += cdist;
-      cp = cp + cdist * dir;
+
   }
 
   //return vec4(1.0,0.0,0.0, 1.0);
