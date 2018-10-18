@@ -1,6 +1,6 @@
 #version 430 core
-#define deltaN 0.01
-#define delta 0.000001
+#define deltaN 0.1
+#define delta 0.1
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
 layout(location = 0) uniform vec3 eye;
@@ -18,8 +18,10 @@ float sdInfiniplane(vec3 p, vec3 o, vec3 n)
 
 float sdCeby(vec3 p, vec3 o, float s)
 {
+	//vec3 d = abs(p-o) - s;
+	//return max(max(d.x, d.y), d.z);
 	vec3 d = abs(p-o) - s;
-	return max(max(d.x, d.y), d.z);
+    return min(max(d.x,max(d.y,d.z)),0.0) + length(max(d,0.0));
 }
 
 float sdSphere( vec3 p, vec3 o, float s )
@@ -89,9 +91,9 @@ float scDist(vec3 p, out vec3 color)
 
 vec3 normal(vec3 p){
 	vec3 res = vec3(
-		scDist(vec3(p.x + deltaN, p.y, p.z)),// - scDist(vec3(p.x - deltaN, p.y, p.z)),
-		scDist(vec3(p.x, p.y + deltaN, p.z)),// - scDist(vec3(p.x, p.y - deltaN, p.z)),
-		scDist(vec3(p.x, p.y, p.z + deltaN))// - scDist(vec3(p.x, p.y, p.z - deltaN))
+		scDist(vec3(p.x + deltaN, p.y, p.z)) - scDist(vec3(p.x - deltaN, p.y, p.z)),
+		scDist(vec3(p.x, p.y + deltaN, p.z)) - scDist(vec3(p.x, p.y - deltaN, p.z)),
+		scDist(vec3(p.x, p.y, p.z + deltaN)) - scDist(vec3(p.x, p.y, p.z - deltaN))
 	);
 
 	return normalize(res);
@@ -151,7 +153,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 			first = min(0.0, first);
 		  */
 		  
-		  if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
+		  if(collisions > 1.5f)//0.5 = first hit, 1.5 = second hit, etc.
 			//break;
 			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
