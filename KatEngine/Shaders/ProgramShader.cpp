@@ -29,14 +29,15 @@ ProgramShader::ProgramShader(GLuint shader1)
 	glLinkProgram(id);
 
 	int rvalue;
-	glGetShaderiv(id, GL_LINK_STATUS, &rvalue);
+
+	glGetProgramiv(id, GL_LINK_STATUS, &rvalue);
 	if (!rvalue) {
-		fprintf(stdout, "Error in linking the program shader\n");
+		fprintf(stderr, "Error in linking program shader\n");
 		GLchar log[10240];
 		GLsizei length;
-		glGetShaderInfoLog(id, 10239, &length, log);
-		fprintf(stdout, "Compiler log:\n%s\n", log);
-		fatal_error("");
+		glGetProgramInfoLog(id, 10239, &length, log);
+		fprintf(stderr, "Linker log:\n%s\n", log);
+		exit(41);
 	}
 }
 

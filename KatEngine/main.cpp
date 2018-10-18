@@ -14,61 +14,12 @@
 #include "Texture.h"
 #include "Shader.h"
 #include "Plane.h"
-
+#define glCheckError() glCheckError_(__FILE__, __LINE__) 
 
 using namespace std;
 using namespace glm;
 
 float winWidth = 640.0f, winHeight = 640.0f;
-
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	winWidth = width;
-	winHeight = height;
-	glViewport(0, 0, width, height);
-}
-
-void countingTo10()
-{
-	using namespace std;
-	string names[] = { "ichi", "ni", "san", "yon", "go", "roku", "nana", "hatchi", "kyuu", "juu" };
-	srand(time(NULL));
-
-	int len = sizeof(names) / sizeof(string);
-	string buffy;
-
-	while (true)
-	{
-		int ci = rand() % len;
-		cout << ci + 1 << endl;
-		cin >> buffy;
-		cout << names[ci] << endl;
-		
-		system("pause>nul");
-		system("cls");
-
-	}
-	//ichi ni hatchi yon go roku
-	/*
-	ichi ni san yon go roku
-	the quick brown fox jumped over the lazy dog
-	the quick brown fox jumped over the lazy dog
-	the quick brown fox jumped over the lazy dog
-	the quick brown fox jumped over the lazy dog
-	the quick brown fox jumped over the lazy dog
-	  over the lazy dog 
-	
-	*/
-}
-
-void testingStuff()
-{
-	using namespace glm;
-	vec3 a(1, 1, 0);
-	vec3 b(1, 2, 0);
-	vec3 c=  cross(a, b);
-}
-
 float camDist = 4.0f;
 float cam_pitch = 0.0f, cam_yaw = 0.0f;
 vec3 cam_pos(0,0,1);
@@ -85,6 +36,8 @@ mat4 getCamera()
 	mat4 view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
 	return projection * view;
 }
+
+#pragma region Callbacks
 
 bool captured = false;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -160,19 +113,68 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
 {
-	camDist += yoffset * 0.1 * camDist;
+	camDist += -yoffset * 0.1 * camDist;
 }
 
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	winWidth = width;
+	winHeight = height;
+	glViewport(0, 0, width, height);
+}
+#pragma endregion 
 
 void glUniform3fg(int location, vec3 values)
 {
 	glUniform3f(location, values.x, values.y, values.z);
 }
 
+
+void APIENTRY openGlDebugCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+	// ignore non-significant error/warning codes
+	if (id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
+
+	std::cout << "---------------" << std::endl;
+	std::cout << "Debug message (" << id << "): " << message << std::endl;
+
+	switch (source)
+	{
+	case GL_DEBUG_SOURCE_API:             std::cout << "Source: API"; break;
+	case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   std::cout << "Source: Window System"; break;
+	case GL_DEBUG_SOURCE_SHADER_COMPILER: std::cout << "Source: Shader Compiler"; break;
+	case GL_DEBUG_SOURCE_THIRD_PARTY:     std::cout << "Source: Third Party"; break;
+	case GL_DEBUG_SOURCE_APPLICATION:     std::cout << "Source: Application"; break;
+	case GL_DEBUG_SOURCE_OTHER:           std::cout << "Source: Other"; break;
+	} std::cout << std::endl;
+
+	switch (type)
+	{
+	case GL_DEBUG_TYPE_ERROR:               std::cout << "Type: Error"; break;
+	case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: std::cout << "Type: Deprecated Behaviour"; break;
+	case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  std::cout << "Type: Undefined Behaviour"; break;
+	case GL_DEBUG_TYPE_PORTABILITY:         std::cout << "Type: Portability"; break;
+	case GL_DEBUG_TYPE_PERFORMANCE:         std::cout << "Type: Performance"; break;
+	case GL_DEBUG_TYPE_MARKER:              std::cout << "Type: Marker"; break;
+	case GL_DEBUG_TYPE_PUSH_GROUP:          std::cout << "Type: Push Group"; break;
+	case GL_DEBUG_TYPE_POP_GROUP:           std::cout << "Type: Pop Group"; break;
+	case GL_DEBUG_TYPE_OTHER:               std::cout << "Type: Other"; break;
+	} std::cout << std::endl;
+
+	switch (severity)
+	{
+	case GL_DEBUG_SEVERITY_HIGH:         std::cout << "Severity: high"; break;
+	case GL_DEBUG_SEVERITY_MEDIUM:       std::cout << "Severity: medium"; break;
+	case GL_DEBUG_SEVERITY_LOW:          std::cout << "Severity: low"; break;
+	case GL_DEBUG_SEVERITY_NOTIFICATION: std::cout << "Severity: notification"; break;
+	} std::cout << std::endl;
+	std::cout << std::endl;
+	return;
+}
+
 int main()
 {
 	using namespace std;
-
 
 	/*Init GLFW*/
 	if (!glfwInit())
@@ -181,9 +183,10 @@ int main()
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
 
 	/*Now let's make a windows and get its context*/
-	GLFWwindow* window = glfwCreateWindow(640, 640, "My Title", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow((int)winWidth, (int)winHeight, "KatEngine", NULL, NULL);
 
 	if (window == NULL)
 		fatal_error("Failed to create GLFW window");
@@ -195,22 +198,34 @@ int main()
 
 	glfwMakeContextCurrent(window);
 
+
 	/*tie the context with glad to opengl*/
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
 		fatal_error("Failed to initialize GLAD");
 
-	glViewport(0, 0, 640, 640);
+	GLint flags; glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+	if (flags & GL_CONTEXT_FLAG_DEBUG_BIT)
+	{
+		glEnable(GL_DEBUG_OUTPUT);
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+		glDebugMessageCallback(openGlDebugCallback, nullptr);
+		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
+	}
+
+	glViewport(0, 0, (int)winWidth, (int)winHeight);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	glEnable(GL_DEPTH_TEST);
 
-	/*Prepare the battlefield*/
+	/*Prepare ze battlefield*/
+
 	/*Vertex Shader*/
 	Shader vertShader("vcfshaders\\base.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
 	Shader fragShader("vcfshaders\\base.frag", Shader::FRAGMENT_SHADER);
 
+	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
 
 	/*Final Program*/
@@ -218,8 +233,7 @@ int main()
 
 	ProgramShader csprogShader(compShader);
 
-	/*We finally get to use it*/
-
+	glCheckError();
 
 
 
@@ -229,21 +243,23 @@ int main()
 
 	Plane plane;
 
-	float interp = 1.0f;
+
+	float interp = 1.0f; //folosit la interpolat doua modele de sfere pentru o animatie
 
 	double lastTime = glfwGetTime();
 	int nbFrames = 0;
 
 
 
-	Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
-	Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
-	Texture texbl(2048, 2048);
+	//Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
+	//Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
+	Texture texbl(1024, 1024);//blank texture 
 
 	mat4 passThroughcam = glm::identity<mat4>();
 	/*Render loop*/
 	while (!glfwWindowShouldClose(window))
 	{
+		/*Stopwatch - ms > fps :D 60 fps = < 16ms*/
 		float currentTime = glfwGetTime();
 		nbFrames++;
 
@@ -253,13 +269,15 @@ int main()
 			lastTime += 1.0;
 		}
 
+		/*Update animatio interpolation uniform*/
 		interp += 0.002f;
 		//if (interp > 2.0f) interp = 0.0f;
 
+		/*use the blank texture as compute shader frame buffer*/
 		texbl.bindImage(0);
 
+		/*Calculate the forward rays for the corners of the camera projection screen*/
 		mat4 cam = getCamera();
-
 		mat4 invcam = inverse(cam);
 
 		vec4 calc = invcam * vec4(-1, -1, 0, 1); calc /= calc.w;
@@ -270,8 +288,6 @@ int main()
 		vec3 ray10 = vec3(calc);
 		calc = invcam * vec4(1, 1, 0, 1); calc /= calc.w;
 		vec3 ray11 = vec3(calc);
-		//ray00 /= ray00.w;
-		//ray00 -= cam_pos;
 
 		glUseProgram(csprogShader);
 		//glUniform1f(glGetUniformLocation(csprogShader, "roll"), interp*10);
@@ -281,7 +297,7 @@ int main()
 		glUniform3fg(2, ray00 - cam_pos);
 		glUniform3fg(3, ray11 - cam_pos);
 		glUniform3fg(4, ray10 - cam_pos);
-		glDispatchCompute(2048 / 8 , 2048 / 8, 1); // 512^2 threads in blocks of 16^2*/
+		glDispatchCompute(1024 / 8 , 1024 / 8, 1); // 512^2 threads in blocks of 16^2*/
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -300,6 +316,7 @@ int main()
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
+		glCheckError();
 	}
 
 	glfwDestroyWindow(window);
