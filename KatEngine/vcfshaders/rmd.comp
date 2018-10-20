@@ -246,9 +246,9 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  float illum = ldist.x ;// * min(1.0, light.y); //min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
 
 		  //finalColor = first * illum * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
-
+		  	vec3 dirSun = normalize(sunpos - (cp - deltaSun * dir));
 		  //finalColor = illum * currColor;//basic light model
-		  finalColor = mixColors(currColor, vec3(1.0,0.85,0.4), illum * 0.001, 0.5);//actually thought out light model
+		  finalColor = mixColors(currColor, vec3(1.0,0.85,0.4), illum * 0.001, dot(norm,dirSun) );//actually thought out light model
 
 		  //finalColor = vec3(illum.x);
 		  //return vec4(finalColor, 1.0);
