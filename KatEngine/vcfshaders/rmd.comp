@@ -1,7 +1,10 @@
 #version 430 core
 #define deltaN 0.01
 #define delta 0.0001
+#define deltaSunHit 0.01
 #define deltaAway 0.01
+#define deltaSun 0.001
+#define deltaLocalMax 0.001
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
 layout(location = 0) uniform vec3 eye;
@@ -9,6 +12,7 @@ layout(location = 1) uniform vec3 ray00;
 layout(location = 2) uniform vec3 ray01;
 layout(location = 3) uniform vec3 ray10;
 layout(location = 4) uniform vec3 ray11;
+
 
 float sdInfiniplane(vec3 p, vec3 o, vec3 n)
 {
@@ -42,6 +46,9 @@ float differenceSDF(float distA, float distB) {
     return max(distA, -distB);
 }
 
+vec3 sunpos = vec3(1.0,1.0,0.2) * 10;
+float sunsize = 4.0;
+
 //scDist(vec3 p) must have the same objects and parameters as scDist(vec3 p, out vec3 color)
 float scDist(vec3 p)
 {	
@@ -53,6 +60,7 @@ float scDist(vec3 p)
 	minDist = min(minDist, sdInfiniplane(p, vec3(0,-1.0,0), vec3(0,1,0)));
 
 	minDist = min(minDist, sdSphere(p, vec3(0, 3.0,0), 1.0));
+	minDist = min(minDist, sdSphere(p, sunpos, sunsize));
 
 	return minDist;
 }
@@ -83,6 +91,11 @@ float scDist(vec3 p, out vec3 color)
 		finalColor = vec3(10, 0, 0);
 	lastminDist = minDist;
 
+	minDist = min(minDist, sdSphere(p, sunpos, sunsize));
+	if(minDist < lastminDist)
+		finalColor = vec3(1.0, 1.0, 1.0);
+	lastminDist = minDist;
+
 	color = finalColor;
 	return minDist;
 }
@@ -97,6 +110,92 @@ vec3 normal(vec3 p){
 	return normalize(res);
 }
 
+float map(float x, float as, float ae, float bs, float be)
+{
+    return (x-as)/(ae-as)*(be-bs) + bs;
+}
+
+float mapc(float x, float as, float ae, float bs, float be)
+{
+    return clamp((x-as)/(ae-as)*(be-bs) + bs, bs, be);
+}
+
+/*
+chop off the [1.0, 8.0] region from 1/x^2
+remap the ys to [0,1]
+remap the input x from [0.0, 1.0] -> [1.0, 8.0] with no clamping => allows light to fall off naturally
+*/
+float falloff(float x, float beg, float end)
+{
+  if(x < 0.0) return 1.0;
+
+  float begv = 1.0/(beg*beg);
+  float endv = 1.0/(end*end);
+  float norm = 1.0/(begv - endv);
+  float v = map(x, 0.0, 1.0, beg, end);
+  return clamp((1.0/(v*v) - endv) * norm, 0.0, 1.0);
+}
+
+/*
+pre: intensity(parameter) != intesity(lint) in description
+
+Le "David Light Model" axioms:
+
+* At intesity 0.0 any color should be black
+* At intensity 1.0 any color should be white
+* Light intesity is directly proportional to 1/r^2 from which I use the [1.0, 8.0] region
+* Raw RGB data is received therefore a gamma correction is needed #sRGB
+* When should I blend the color to white? Hmm.. Let's apply Pareto => pow(lint, 35.0) which is almost 0 at 80% 1 at 100%
+* Final color shoudn't be brighter than the light => surface * light
+* Assume that multiplying a color by its intensity is a good way to control the lightness
+
+post:oh my god a blue plane actually looks green under yellow light without more debugging
+*/
+vec3 mixColors(vec3 surface, vec3 light, float dist, float intensity)
+{
+    float lint = pow(falloff(dist / intensity, 1.0, 8.0), 0.454545);
+    return mix(surface * light, light, pow(lint, 35.0)) * lint;
+}
+
+vec2 sundist(vec3 p)
+{
+	float intensity = 1.0;
+	
+	vec3 cp = p;
+	float minDist = 1000.0;
+	vec3 dirSun = normalize(sunpos - p);
+	vec3 dirHit = -dirSun;
+
+	float tdist = 0.0;//total distance travelled by the ray
+	float calctdist = sdSphere(cp, sunpos, 4.0);//total distance if not blocked by an object
+	float cdist = 0.0;//current distance from current point to closest surface
+	float lastcdist = cdist;
+
+	bool foundFLocalMax = false;//first maximum found = ray has escaped the proximity of the initial hit surface
+
+	for(int i = 0; i < 100; i++)//>50
+	{
+		lastcdist = cdist;
+		cdist = scDist(cp);
+		cp = cp + cdist * dirSun;
+		tdist += cdist;
+
+		foundFLocalMax = lastcdist - cdist > deltaLocalMax;
+		minDist = foundFLocalMax ? minDist - cdist : minDist;
+
+		if(foundFLocalMax) break;
+		if(cdist < delta) //there's a hit, pitch black
+			break;
+	}
+
+
+	//tdist = calctdist - tdist;
+	//intensity = intensity/(tdist * tdist);
+	//intensity = clamp(intensity*100.0, 0.0, 1.0);
+	intensity *= calctdist -  tdist < deltaSunHit ? tdist : 1000.0;
+
+	return vec2(intensity, min(sunsize, minDist)/sunsize);
+}
 
 
 vec4 trace(vec3 origin, vec3 dir) {
@@ -114,7 +213,7 @@ vec4 trace(vec3 origin, vec3 dir) {
   float dDist = 0;//distance covered by taking the last step
   float collisions = 0.0;//number of collisions so far
 
-  for(int i = 0; i < 100 && tdist < 20.0 ; i++)
+  for(int i = 0; i < 100 && tdist < 50.0 ; i++)
   {
       cdist = scDist(cp, currColor);
 	  cp = cp + cdist * dir;
@@ -126,7 +225,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 	  if(currColor.x > 1.0)//special coloring mode for normals
 		currColor = (norm + 1.0) * 0.5;
 
-	  float illum = min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
+	  
 
       if(cdist < delta)//close enough to an object consider it a collision
 	  {
@@ -139,17 +238,28 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  dDist = dDist * dDist;
 		  lastHit = tdist;
 
-		  float blend = max(1.0, 1.0 / dDist);
-		  blend = 0.2;
-		  finalColor = first * clamp(illum, 0.0, 1.0) * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+
+		  float blend = min(0.5, 1.0 / dDist);
+
+		  vec2 ldist = sundist(cp - deltaSun * dir);
+		  float illum = ldist.x ;// * min(1.0, light.y); //min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
+
+		  //finalColor = first * illum * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+
+		  //finalColor = illum * currColor;//basic light model
+		  finalColor = mixColors(currColor, vec3(1.0,0.9,0.2), illum * 0.001, 1.0);//actually thought out light model
+
+		  //finalColor = vec3(illum.x);
+		  //return vec4(finalColor, 1.0);
 
 		  first = min(0.0, first);
 		  
 		  dir = normalize(reflect(dir, norm));
 		  cp = cp + deltaAway * dir;//run away from the current point to avoid multiple tiny iterations
+
 		  
-		 //if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
-			//break;
+		 if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
+			break;//stop at nth bounce
 			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
 			//return vec4((norm + 1.0) * 0.5 , 1.0);//hit normal
