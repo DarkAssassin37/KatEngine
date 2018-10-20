@@ -148,12 +148,13 @@ Le "David Light Model" axioms:
 * When should I blend the color to white? Hmm.. Let's apply Pareto => pow(lint, 35.0) which is almost 0 at 80% 1 at 100%
 * Final color shoudn't be brighter than the light => surface * light
 * Assume that multiplying a color by its intensity is a good way to control the lightness
+- forgot about normals T_T
 
 post:oh my god a blue plane actually looks green under yellow light without more debugging
 */
 vec3 mixColors(vec3 surface, vec3 light, float dist, float intensity)
 {
-    float lint = pow(falloff(dist / intensity, 1.0, 8.0), 0.454545);
+    float lint = pow(falloff(dist, 1.0 * intensity, 8.0), 0.454545);
     return mix(surface * light, light, pow(lint, 35.0)) * lint;
 }
 
@@ -183,7 +184,7 @@ vec2 sundist(vec3 p)
 		foundFLocalMax = lastcdist - cdist > deltaLocalMax;
 		minDist = foundFLocalMax ? minDist - cdist : minDist;
 
-		if(foundFLocalMax) break;
+		//if(foundFLocalMax) break;
 		if(cdist < delta) //there's a hit, pitch black
 			break;
 	}
@@ -247,7 +248,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  //finalColor = first * illum * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
 
 		  //finalColor = illum * currColor;//basic light model
-		  finalColor = mixColors(currColor, vec3(1.0,0.9,0.2), illum * 0.001, 1.0);//actually thought out light model
+		  finalColor = mixColors(currColor, vec3(1.0,0.85,0.4), illum * 0.001, 0.5);//actually thought out light model
 
 		  //finalColor = vec3(illum.x);
 		  //return vec4(finalColor, 1.0);
