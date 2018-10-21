@@ -17,7 +17,7 @@ layout(location = 4) uniform vec3 ray11;
 
 vec3 sunpos = vec3(1.0,1.0,0.2) * 10;
 vec3 suncol = vec3(1.0,1.0,1.0);
-float sunsize = 4.0;
+float sunsize = 0.1;
 
 
 float sdInfiniplane(vec3 p, vec3 o, vec3 n)
@@ -279,7 +279,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  float blend = min(0.5, 1.0 / dDist);
 
 		  vec2 ldist = sundist(cp - deltaSun * dir);
-		  //if(ldist.x < deltaSunHit) return vec4(suncol,1.0);
+		  if(ldist.x < deltaSunHit) return vec4(suncol,1.0);
 		  //float illum = ldist.x ;// * min(1.0, light.y); //min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
 
 		  //finalColor = first * illum * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
@@ -298,7 +298,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  cp = cp + deltaAway * dir;//run away from the current point to avoid multiple tiny iterations
 
 		  
-		 if(collisions > 1.5f)//0.5 = first hit, 1.5 = second hit, etc.
+		 if(collisions > 2.5f)//0.5 = first hit, 1.5 = second hit, etc.
 			break;//stop at nth bounce
 			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color

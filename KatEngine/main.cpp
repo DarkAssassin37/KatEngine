@@ -15,6 +15,7 @@
 #include "Shader.h"
 #include "Plane.h"
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
+#define KAT_TEXTURE_SIZE 1024
 
 using namespace std;
 using namespace glm;
@@ -253,7 +254,7 @@ int main()
 
 	//Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	//Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
-	Texture texbl(1024, 1024);//blank texture 
+	Texture texbl(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE);//blank texture 
 
 	mat4 passThroughcam = glm::identity<mat4>();
 	/*Render loop*/
@@ -297,7 +298,7 @@ int main()
 		glUniform3fg(2, ray00 - cam_pos);
 		glUniform3fg(3, ray11 - cam_pos);
 		glUniform3fg(4, ray10 - cam_pos);
-		glDispatchCompute(1024 / 8 , 1024 / 8, 1); //1024 512^2 threads in blocks of 16^2*/
+		glDispatchCompute(KAT_TEXTURE_SIZE / 8 , KAT_TEXTURE_SIZE / 8, 1); //1024 512^2 threads in blocks of 16^2*/
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
