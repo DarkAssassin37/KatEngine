@@ -24,5 +24,6 @@ public:
 
 	void bindTexture(int unit);
 	void bindImage(int unit, int access = GL_WRITE_ONLY);
+	void clear();
 };
 

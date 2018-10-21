@@ -272,7 +272,7 @@ int main()
 		/*Update animatio interpolation uniform*/
 		interp += 0.002f;
 		//if (interp > 2.0f) interp = 0.0f;
-
+		//texbl.clear();
 		/*use the blank texture as compute shader frame buffer*/
 		texbl.bindImage(0);
 
@@ -297,7 +297,7 @@ int main()
 		glUniform3fg(2, ray00 - cam_pos);
 		glUniform3fg(3, ray11 - cam_pos);
 		glUniform3fg(4, ray10 - cam_pos);
-		glDispatchCompute(1024 / 8 , 1024 / 8, 1); // 512^2 threads in blocks of 16^2*/
+		glDispatchCompute(1024 / 8 , 1024 / 8, 1); //1024 512^2 threads in blocks of 16^2*/
 
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 

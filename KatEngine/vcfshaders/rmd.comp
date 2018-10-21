@@ -5,6 +5,8 @@
 #define deltaAway 0.01
 #define deltaSun 0.001
 #define deltaLocalMax 0.001
+#define DEBUG true
+#define DEBUG_PIXEL ivec2(400,512)
 layout(binding = 0, rgba32f) uniform image2D framebuffer;
 
 layout(location = 0) uniform vec3 eye;
@@ -12,6 +14,10 @@ layout(location = 1) uniform vec3 ray00;
 layout(location = 2) uniform vec3 ray01;
 layout(location = 3) uniform vec3 ray10;
 layout(location = 4) uniform vec3 ray11;
+
+vec3 sunpos = vec3(1.0,1.0,0.2) * 10;
+vec3 suncol = vec3(1.0,1.0,1.0);
+float sunsize = 4.0;
 
 
 float sdInfiniplane(vec3 p, vec3 o, vec3 n)
@@ -45,9 +51,6 @@ float unionSDF(float distA, float distB) {
 float differenceSDF(float distA, float distB) {
     return max(distA, -distB);
 }
-
-vec3 sunpos = vec3(1.0,1.0,0.2) * 10;
-float sunsize = 4.0;
 
 //scDist(vec3 p) must have the same objects and parameters as scDist(vec3 p, out vec3 color)
 float scDist(vec3 p)
@@ -152,10 +155,22 @@ Le "David Light Model" axioms:
 
 post:oh my god a blue plane actually looks green under yellow light without more debugging
 */
+
+//todo: do the power as the last element
 vec3 mixColors(vec3 surface, vec3 light, float dist, float intensity)
 {
-    float lint = pow(falloff(dist, 1.0 * intensity, 8.0), 0.454545);
+    float lint = pow(falloff(dist, 1.0, 8.0), 0.454545) * intensity;
     return mix(surface * light, light, pow(lint, 35.0)) * lint;
+}
+
+/*For Debigging purposes*/
+int curPix = 0;
+void drawbar(float value, float scale, vec3 color)
+{
+	int pixy = int(value * scale);
+	for(int y = 0; y < pixy && y < 1024; y++)
+		imageStore(framebuffer, ivec2(curPix, y), vec4(color,1.0));
+	curPix++;
 }
 
 vec2 sundist(vec3 p)
@@ -173,6 +188,8 @@ vec2 sundist(vec3 p)
 	float lastcdist = cdist;
 
 	bool foundFLocalMax = false;//first maximum found = ray has escaped the proximity of the initial hit surface
+	bool foundFLocalMin = false;//first maximum found = ray has escaped the proximity of the initial hit surface
+
 
 	for(int i = 0; i < 100; i++)//>50
 	{
@@ -181,21 +198,40 @@ vec2 sundist(vec3 p)
 		cp = cp + cdist * dirSun;
 		tdist += cdist;
 
-		foundFLocalMax = lastcdist - cdist > deltaLocalMax;
-		minDist = foundFLocalMax ? minDist - cdist : minDist;
+		foundFLocalMax = foundFLocalMax || lastcdist > cdist;// > deltaLocalMax;
+		foundFLocalMin = foundFLocalMax && (foundFLocalMin || lastcdist < cdist);
+		//if(foundFLocalMax)
+		// break;
+
+		if(foundFLocalMax && lastcdist < cdist)
+		{
+			minDist = min(minDist, lastcdist);//foundFLocalMax ? lastcdist : minDist;
+			//return vec2(0.0, minDist);
+			//break;
+		}
+		 if(DEBUG && gl_GlobalInvocationID.xy == DEBUG_PIXEL)
+		{
+			if(foundFLocalMin)
+				drawbar(cdist, 400.0, vec3(1.0,0.0,0.0));
+			else if (foundFLocalMax)
+				drawbar(cdist, 400.0, vec3(0.0,1.0,0.0));
+			else
+				drawbar(cdist, 400.0, vec3(1.0,1.0,1.0));
+		}
 
 		//if(foundFLocalMax) break;
 		if(cdist < delta) //there's a hit, pitch black
 			break;
 	}
 
-
+	//intensity = tdist/calctdist;
+	intensity = tdist;
 	//tdist = calctdist - tdist;
 	//intensity = intensity/(tdist * tdist);
 	//intensity = clamp(intensity*100.0, 0.0, 1.0);
-	intensity *= calctdist -  tdist < deltaSunHit ? tdist : 1000.0;
+	intensity *= calctdist -  tdist < deltaSunHit ? 1.0 : 1000.0;
 
-	return vec2(intensity, min(sunsize, minDist)/sunsize);
+	return vec2(intensity, min(1.0, minDist));
 }
 
 
@@ -243,12 +279,15 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  float blend = min(0.5, 1.0 / dDist);
 
 		  vec2 ldist = sundist(cp - deltaSun * dir);
-		  float illum = ldist.x ;// * min(1.0, light.y); //min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
+		  //if(ldist.x < deltaSunHit) return vec4(suncol,1.0);
+		  //float illum = ldist.x ;// * min(1.0, light.y); //min(1.0, dot(norm, -camdir));//vec3(1.0,1.0,0.2)));
 
 		  //finalColor = first * illum * currColor + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
-		  	vec3 dirSun = normalize(sunpos - (cp - deltaSun * dir));
-		  //finalColor = illum * currColor;//basic light model
-		  finalColor = mixColors(currColor, vec3(1.0,0.85,0.4), illum * 0.001, dot(norm,dirSun) );//actually thought out light model
+		  vec3 dirSun = normalize(sunpos - (cp - deltaSun * dir));
+
+		  //finalColor = ldist.x * ldist.y * currColor;//basic light model
+		  finalColor = first * mixColors(currColor, suncol, ldist.x * 0.001, ldist.y * dot(norm,dirSun))
+		  + (1.0-first) * (currColor * blend + (1-blend) * finalColor);//actually thought out light model
 
 		  //finalColor = vec3(illum.x);
 		  //return vec4(finalColor, 1.0);
@@ -259,7 +298,7 @@ vec4 trace(vec3 origin, vec3 dir) {
 		  cp = cp + deltaAway * dir;//run away from the current point to avoid multiple tiny iterations
 
 		  
-		 if(collisions > 0.5f)//0.5 = first hit, 1.5 = second hit, etc.
+		 if(collisions > 1.5f)//0.5 = first hit, 1.5 = second hit, etc.
 			break;//stop at nth bounce
 			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.01), 1.0);//hit distance, 
 			//return vec4(currColor, 1.0);//hit color
@@ -291,5 +330,9 @@ void main(void) {
   dir = normalize(dir);
 
   vec4 color = trace(eye, dir);
-  imageStore(framebuffer, pix, color);
+  if(DEBUG && pix == DEBUG_PIXEL)
+	imageStore(framebuffer, pix, vec4(1.0,0.0,0.0,1.0));
+  else
+	imageStore(framebuffer, pix, color);
+	
 }

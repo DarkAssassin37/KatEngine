@@ -3,6 +3,7 @@
 #include <stb_image.h>
 #include <glad/glad.h>
 #include "messages.h"
+#include <vector>
 
 std::map<std::string, std::map<int,int>> Texture::textures;
 
@@ -74,4 +75,16 @@ void Texture::bindImage(int unit, int access)
  	GLenum format);
 	 */
 	glBindImageTexture(unit, id, 0, GL_FALSE, 0, access, GL_RGBA32F);
+}
+
+void Texture::clear()
+{
+	glBindTexture(GL_TEXTURE_2D, id);
+
+	unsigned char* data = (unsigned char*)malloc(sizeof(unsigned char) * width * height * 3);
+	memset(data, 0, sizeof(unsigned char) * width * height * 3);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	free(data);
 }
