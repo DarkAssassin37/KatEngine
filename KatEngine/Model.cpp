@@ -116,3 +116,19 @@ void Model::draw()
 
 	glDrawElements(GL_TRIANGLES, meshes[0].indices.size(), GL_UNSIGNED_INT, NULL);
 }
+
+std::vector<glm::vec3> Model::fVertices()
+{
+	return meshes[0].vertices;
+}
+
+std::vector<unsigned> Model::fIndices()
+{
+	return meshes[0].indices;
+}
+
+std::vector<glm::vec3> Model::fNormals()
+{
+	return meshes[0].normals;
+}
+

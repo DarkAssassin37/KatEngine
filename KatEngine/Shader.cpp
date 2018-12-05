@@ -7,15 +7,15 @@ Shader::Shader(const char* filepath, GLint shaderType)
 {
 	this->filepath = filepath;
 	id = glCreateShader(shaderType);
-	const GLchar* vertSource = loadStringFromFile(filepath);
+	const GLchar* source = loadStringFromFile(filepath);
 
-	if (vertSource == NULL)
+	if (source == NULL)
 	{
 		printf("Could not open shader file: %s", filepath);
 		fatal_error("");
 	}
 
-	glShaderSource(id, 1, &vertSource, NULL);
+	glShaderSource(id, 1, &source, NULL);
 
 	glCompileShader(id);
 
@@ -30,7 +30,7 @@ Shader::Shader(const char* filepath, GLint shaderType)
 		fatal_error("");
 	}
 
-	delete[] vertSource;
+	delete[] source;
 }
 
 

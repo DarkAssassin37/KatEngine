@@ -77,6 +77,13 @@ void Texture::bindImage(int unit, int access)
 	glBindImageTexture(unit, id, 0, GL_FALSE, 0, access, GL_RGBA32F);
 }
 
+void Texture::generateMipmap()
+{
+	bindTexture(0);
+	glGenerateMipmap(GL_TEXTURE_2D);
+
+}
+
 void Texture::clear()
 {
 	glBindTexture(GL_TEXTURE_2D, id);
@@ -87,4 +94,20 @@ void Texture::clear()
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
 
 	free(data);
+}
+
+Texture Texture::FromGenFunction(int width, int height, function<void(int*, int, int)> genFunc)
+{
+	Texture tex(width, height);
+	tex.bindTexture(0);
+
+	int* data = new int[width*height*3];
+
+	genFunc(data, width, height);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+
+	delete[] data;
+	
+	return tex;
 }

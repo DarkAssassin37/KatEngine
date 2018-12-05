@@ -14,6 +14,7 @@
 #include "Texture.h"
 #include "Shader.h"
 #include "Plane.h"
+#include "PointCloud.h"
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 #define KAT_TEXTURE_SIZE 1024
 
@@ -21,7 +22,7 @@ using namespace std;
 using namespace glm;
 
 float winWidth = 640.0f, winHeight = 640.0f;
-float camDist = 4.0f;
+float camDist = 2.0f;
 float cam_pitch = 0.0f, cam_yaw = 0.0f;
 vec3 cam_pos(0,0,1);
 
@@ -173,6 +174,31 @@ void APIENTRY openGlDebugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 	return;
 }
 
+vector<vec3> generatePointCloud()
+{
+	vector<vec3> points;
+
+	vec3 startPoint(-10.0, -10.0f, -10.0f);
+	vec3 endPoint(-10.0, -10.0f, -10.0f);
+
+	bool odd = false;
+	for (float z = -1.0f; z < 1.05f; z += 0.1f)
+	{
+		for (float y = -1.0f; y < 1.05f; y += 0.1f)
+		{
+			for (float x = -1.0f; x < 1.05f; x += 0.1f)
+			{
+				if(z < x*y)
+					points.emplace_back(x*16.0f + (odd ? 0.8f : 0.0f), z*14.0f, y*14.0f);
+			}
+			odd = !odd;
+		}
+	}
+
+	return points;
+
+}
+
 int main()
 {
 	using namespace std;
@@ -217,20 +243,25 @@ int main()
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/*Prepare ze battlefield*/
 
 	/*Vertex Shader*/
-	Shader vertShader("vcfshaders\\base.vert", Shader::VERTEX_SHADER);
+	Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
-	Shader fragShader("vcfshaders\\base.frag", Shader::FRAGMENT_SHADER);
+	Shader fragShader("vcfshaders\\scGeom\\dark.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
 
+	/*Geometry Shader*/
+	Shader geomShader("vcfshaders\\scGeom\\dark.geom", Shader::GEOMETRY_SHADER);
+
 	/*Final Program*/
-	ProgramShader progShader(vertShader, fragShader);
+	ProgramShader progShader(vertShader, geomShader, fragShader);
 
 	ProgramShader csprogShader(compShader);
 
@@ -242,7 +273,11 @@ int main()
 	/*Model bolly("Models\\sphere.obj");
 	bolly.loadMeshes(0, 0);*/
 
-	Plane plane;
+	//Plane plane;
+
+	vector<vec3> points = generatePointCloud();
+
+	PointCloud pt_cloud(points);
 
 
 	float interp = 1.0f; //folosit la interpolat doua modele de sfere pentru o animatie
@@ -251,10 +286,31 @@ int main()
 	int nbFrames = 0;
 
 
-
 	//Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	//Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
 	Texture texbl(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE);//blank texture 
+	Texture tex_perlin = Texture::FromGenFunction(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE,[](int* dat, int w, int h)
+	{
+		srand(time(NULL));
+		for(int y = 0; y < h; y++)
+			for(int x = 0; x < w; x++)
+			{
+				dat[y*w + x] = rand() % 256;
+			}
+	});
+
+	tex_perlin.generateMipmap();
+
+	Model cubeTexel("Models\\cubeTexel.obj");
+
+	progShader.use();
+
+	glUniform3fv(glGetUniformLocation(progShader, "geom_Vert"), cubeTexel.fVertices().size() * 6, (GLfloat*)&cubeTexel.fVertices()[0]);
+	glUniform1iv(glGetUniformLocation(progShader, "geom_Ind"), cubeTexel.fIndices().size(), (GLint*)&cubeTexel.fIndices()[0]);
+	glUniform1i(glGetUniformLocation(progShader, "geom_INum"), cubeTexel.fIndices().size());
+
+
+
 
 	mat4 passThroughcam = glm::identity<mat4>();
 	/*Render loop*/
@@ -275,7 +331,8 @@ int main()
 		//if (interp > 2.0f) interp = 0.0f;
 		//texbl.clear();
 		/*use the blank texture as compute shader frame buffer*/
-		texbl.bindImage(0);
+		//texbl.bindImage(0);
+		//tex_perlin.bindTexture(1);
 
 		/*Calculate the forward rays for the corners of the camera projection screen*/
 		mat4 cam = getCamera();
@@ -290,7 +347,7 @@ int main()
 		calc = invcam * vec4(1, 1, 0, 1); calc /= calc.w;
 		vec3 ray11 = vec3(calc);
 
-		glUseProgram(csprogShader);
+		/*glUseProgram(csprogShader);
 		//glUniform1f(glGetUniformLocation(csprogShader, "roll"), interp*10);
 		auto loc = glGetUniformLocation(csprogShader, "eye");
 		glUniform3fg(0, cam_pos);
@@ -299,20 +356,20 @@ int main()
 		glUniform3fg(3, ray11 - cam_pos);
 		glUniform3fg(4, ray10 - cam_pos);
 		glDispatchCompute(KAT_TEXTURE_SIZE / 8 , KAT_TEXTURE_SIZE / 8, 1); //1024 512^2 threads in blocks of 16^2*/
-
+		/*
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		texbl.bindTexture(0);
-
+		texbl.bindTexture(0);*/
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 		progShader.use();
 
-		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &passThroughcam[0][0]);
-		glUniform1f(glGetUniformLocation(progShader, "lerp_value"), interp > 1.0f ? 2 - interp : interp);
-		//glUniform1f(glGetUniformLocation(progShader, "time"), currentTime);
+		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &cam[0][0]);
+		//glUniform1f(glGetUniformLocation(progShader, "lerp_value"), interp > 1.0f ? 2 - interp : interp);
+		glUniform1f(glGetUniformLocation(progShader, "time"), currentTime);
 
-		plane.draw();
+		pt_cloud.draw();
 
 
 		glfwSwapBuffers(window);

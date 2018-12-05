@@ -21,6 +21,11 @@ public:
 	void setInterpolation(float interp);
 	void draw();
 
+
+	std::vector<glm::vec3> fVertices();
+	std::vector<unsigned> fIndices();
+	std::vector<glm::vec3> fNormals();
+
 private:
 	const char* filepath;
 	void processNode(aiNode* node, const aiScene* scene);

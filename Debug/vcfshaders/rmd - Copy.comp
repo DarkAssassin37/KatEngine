@@ -1,0 +1,159 @@
+#version 430 core
+#define deltaN 0.01
+#define delta 0.00001
+layout(binding = 0, rgba32f) uniform image2D framebuffer;
+
+layout(location = 0) uniform vec3 eye;
+layout(location = 1) uniform vec3 ray00;
+layout(location = 2) uniform vec3 ray01;
+layout(location = 3) uniform vec3 ray10;
+layout(location = 4) uniform vec3 ray11;
+
+float sdInfiniplane(vec3 p, vec3 o, vec3 n)
+{
+	vec3 dv = p - o; 
+	float dist = dot(dv, n);
+	return dist;
+}
+
+float sdCeby(vec3 p, vec3 o, float s)
+{
+	vec3 d = abs(p-o) - s;
+	return max(max(d.x, d.y), d.z);
+}
+
+float sdSphere( vec3 p, vec3 o, float s )
+{
+  return length(p-o)-s;
+}
+
+float scDist(vec3 p)
+{	
+	float minDist = sdCeby(p, vec3(0,0.5,0), 1.0);
+
+	minDist = min(minDist, sdInfiniplane(p, vec3(0,-1.0,0), vec3(0,1,0)));
+
+	minDist = min(minDist, sdSphere(p, vec3(0, 3.0,0), 1.0));
+
+	return minDist;
+}
+
+float scDist(vec3 p, out vec3 color)
+{	
+	float lastminDist  = 1000.0;
+	vec3 finalColor = vec3(1.0,1.0,0);
+
+	float minDist = sdCeby(p, vec3(0,0.5,0), 1.0);
+	if(minDist < lastminDist)
+		finalColor = vec3(1.0,1.0,1.0) * 0.8;
+	lastminDist = minDist;
+
+	minDist = min(minDist, sdInfiniplane(p, vec3(0,-0.5,0), vec3(0,1,0)));
+	if(minDist < lastminDist)
+		finalColor = vec3(1, 0.509, 0.019);
+	lastminDist = minDist;
+
+	minDist = min(minDist, sdSphere(p, vec3(0, 3.0,0), 1.0));
+	if(minDist < lastminDist)
+		finalColor = vec3(10, 0, 0);
+	lastminDist = minDist;
+
+	color = finalColor;
+	return minDist;
+}
+
+vec3 normal(vec3 p){
+	vec3 res = vec3(
+		scDist(vec3(p.x + deltaN, p.y, p.z)),
+		scDist(vec3(p.x, p.y + deltaN, p.z)),
+		scDist(vec3(p.x, p.y, p.z + deltaN))
+	);
+
+	return normalize(res);
+}
+
+
+
+vec4 trace(vec3 origin, vec3 dir) {
+
+  //return vec4(0.88, 0.0, 0.08, 1.0);
+  vec3 cp = origin;
+  float cdist = 0.0;
+  float tdist = 0.0;
+  
+  float lastHit = 0.0;
+  vec3 finalColor = vec3(0.08, 0.0, 0.08);
+  vec3 currColor;
+  float first = 1.0;
+  float dDist = 0;
+  float collisions = 0.0;
+
+  for(int i = 0; i < 10, tdist < 15.0 ; i++)
+  {
+      cdist = scDist(cp, currColor);
+	  vec3 norm = normal(cp);
+
+	  float illum = dot(norm, vec3(1.0,1.0,0.2));
+
+      if(cdist < delta)
+	  {
+		  
+		  //return vec4((norm + 1.0) * 0.5 , 1.0); //normals
+
+		  collisions += 1.0;
+
+
+		  /*if(currColor.x > 1.0)
+				return vec4((norm + 1.0) * 0.5 , 1.0);*/
+
+		  //return vec4(currColor / tdist , 1.0);
+		  //dDist = tdist - lastHit;
+		  //dDist = dDist * dDist;
+		  
+		  //float blend = max(1.0, 1.0 / dDist);
+		 // blend = 1.0;
+		  //finalColor = first * currColor;// + (1.0-first) * (currColor * blend + (1-blend) * finalColor); //abs(norm) * clamp(illum, 0.2, 1.0) * multiplier + (1-multiplier) * finalColor;
+		  
+		  dir = normalize(reflect(dir, norm));
+		  //lastHit = tdist;
+
+		 /* if(first < 1.0) 
+			return vec4(finalColor, 1.0);
+		  else
+			finalColor *= illum;
+		
+			first = min(0.0, first);
+		  */
+
+		  if(collisions > 0.5f) 
+			//return vec4(vec3(1.0,1.0,1.0) * (1.0 - dDist * 0.05), 1.0);
+			return vec4((norm + 1.0) * 0.5 , 1.0);
+	  }
+
+	  tdist += cdist;
+      cp = cp + cdist * dir;
+  }
+
+  return vec4(1.0,0.0,0.0, 1.0);
+
+ //return vec4(collisions*vec3(0.1,0.2,0.1),1.0);
+
+  //return vec4(finalColor, 1.0);
+}
+
+
+layout (local_size_x = 8, local_size_y = 8) in;
+
+void main(void) {
+  ivec2 pix = ivec2(gl_GlobalInvocationID.xy);
+  ivec2 size = imageSize(framebuffer);
+  if (pix.x >= size.x || pix.y >= size.y) {
+    return;
+  }
+  vec2 pos = vec2(pix) / vec2(size.x, size.y);
+  vec3 dir = mix(mix(ray00, ray01, pos.y), mix(ray10, ray11, pos.y), pos.x);
+  dir = normalize(dir);
+
+  vec4 color = trace(eye, dir);
+  imageStore(framebuffer, pix, color);
+}
