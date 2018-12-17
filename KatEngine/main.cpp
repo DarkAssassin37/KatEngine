@@ -175,17 +175,9 @@ void APIENTRY openGlDebugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 }
 
 vector<vec3> generatePointCloud()
-{	
-	Model frac(R"(E:\Programs\Mandelbulb3Dv199\Meshes\cuby.ply)");
-	//return frac.meshes[0].vertices;
-	vector<vec3> points;// = frac.meshes[0].vertices;
-	vector<vec3> othpoints = frac.meshes[0].vertices;
-	for(int i = 0; i < othpoints.size(); i+= 5)
-	{
-		othpoints[i] *= 100.0f;
-		points.push_back(othpoints[i]);
-	}
-	return points;
+{
+	vector<vec3> points;
+
 	vec3 startPoint(-10.0, -10.0f, -10.0f);
 	vec3 endPoint(-10.0, -10.0f, -10.0f);
 
@@ -252,23 +244,21 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
-	glClearColor(0.1, 0.0, 0.3, 1.0);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/*Prepare ze battlefield*/
 
 	/*Vertex Shader*/
-	//Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
-	Shader vertShader("vcfshaders\\fractal\\dark.vert", Shader::VERTEX_SHADER);
+	Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
-	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
+	Shader fragShader("vcfshaders\\scGeom\\dark.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
 
 	/*Geometry Shader*/
-	Shader geomShader("vcfshaders\\fractal\\dark.geom", Shader::GEOMETRY_SHADER);
+	Shader geomShader("vcfshaders\\scGeom\\dark.geom", Shader::GEOMETRY_SHADER);
 
 	/*Final Program*/
 	ProgramShader progShader(vertShader, geomShader, fragShader);
@@ -311,8 +301,7 @@ int main()
 
 	tex_perlin.generateMipmap();
 
-	//Model cubeTexel("Models\\cubeTexel.obj");
-	Model cubeTexel("Models\\circle16.obj");
+	Model cubeTexel("Models\\cubeTexel.obj");
 
 	progShader.use();
 
