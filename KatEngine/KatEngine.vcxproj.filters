@@ -72,4 +72,28 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
+  <ItemGroup>
+    <None Include="vcfshaders\fractal\dark.frag" />
+    <None Include="vcfshaders\fractal\dark.geom" />
+    <None Include="vcfshaders\fractal\dark.vert" />
+    <None Include="vcfshaders\base.frag" />
+    <None Include="vcfshaders\base.vert" />
+    <None Include="vcfshaders\base_interp.vert" />
+    <None Include="vcfshaders\basic.frag" />
+    <None Include="vcfshaders\basic.vert" />
+    <None Include="vcfshaders\csbase.comp" />
+    <None Include="vcfshaders\csbase.frag" />
+    <None Include="vcfshaders\csbase.vert" />
+    <None Include="vcfshaders\raymarch.comp" />
+    <None Include="vcfshaders\raytrace.glsl" />
+    <None Include="vcfshaders\rmd - Copy.comp" />
+    <None Include="vcfshaders\rmd.comp" />
+    <None Include="vcfshaders\rmd_prealpha.comp" />
+    <None Include="vcfshaders\shaderStartMultL.frag" />
+    <None Include="vcfshaders\shaderStartMultL.vert" />
+    <None Include="vcfshaders\tes.geom" />
+    <None Include="vcfshaders\scGeom\dark.frag" />
+    <None Include="vcfshaders\scGeom\dark.geom" />
+    <None Include="vcfshaders\scGeom\dark.vert" />
+  </ItemGroup>
 </Project>
