@@ -14,5 +14,4 @@
 *.suo
 *.ipch
 *.opendb
-*.obj
-*.ply
+/KatEngine/Models/cuby.ply

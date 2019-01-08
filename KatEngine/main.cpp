@@ -175,9 +175,17 @@ void APIENTRY openGlDebugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 }
 
 vector<vec3> generatePointCloud()
-{
-	vector<vec3> points;
-
+{	
+	Model frac(R"(E:\Programs\Mandelbulb3Dv199\Meshes\cuby.ply)");
+	//return frac.meshes[0].vertices;
+	vector<vec3> points;// = frac.meshes[0].vertices;
+	vector<vec3> othpoints = frac.meshes[0].vertices;
+	for(int i = 0; i < othpoints.size(); i+= 3)
+	{
+		othpoints[i] *= 100.0f;
+		points.push_back(othpoints[i]);
+	}
+	return points;
 	vec3 startPoint(-10.0, -10.0f, -10.0f);
 	vec3 endPoint(-10.0, -10.0f, -10.0f);
 
@@ -197,6 +205,110 @@ vector<vec3> generatePointCloud()
 
 	return points;
 
+}
+
+GLuint Precompute()
+{
+	int NUM_VERTS_H = 512;
+	int NUM_VERTS_V = 512;
+	int GROUP_SIZE_WIDTH = 8;
+	int GROUP_SIZE_HEIGHT = 8;
+	GLuint res;
+	glGenBuffers(1, &res);
+	GLuint ebo;
+	glGenBuffers(1, &ebo);
+
+	Shader objGenShader("vcfshaders\\objGen.comp", Shader::COMPUTE_SHADER);
+	ProgramShader objGenProg(objGenShader);
+
+	glCheckError();
+
+	glUseProgram(objGenProg);
+	//glUniform1f(glGetUniformLocation(csprogShader, "roll"), interp*10);
+	//auto loc = glGetUniformLocation(objGenProg, "eye");
+
+
+	// gIndexBufferBinding is equal to 0 (same as the compute shader binding)
+	int outBuffer = 0;
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, res);
+	float* zeros = new float[NUM_VERTS_H * NUM_VERTS_V * 16];
+	for (int i = 0; i < NUM_VERTS_H *NUM_VERTS_V; i++)
+		zeros[i] = 0.0f;
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_VERTS_H *NUM_VERTS_V * sizeof(float) * 16, zeros, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, outBuffer, res); //outbuffer binding = 0
+
+
+	int outBuffer2 = 1;//do math!!!
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, ebo);
+	GLuint* zerose = new GLuint[NUM_VERTS_H * NUM_VERTS_V * 16];
+	for (int i = 0; i < NUM_VERTS_H *NUM_VERTS_V; i++)
+		zerose[i] = 0.0f;
+
+	glBufferData(GL_SHADER_STORAGE_BUFFER, NUM_VERTS_H * NUM_VERTS_V * sizeof(float) * 16, zerose, GL_STATIC_DRAW);
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, outBuffer2, ebo); //outbuffer binding = 0*/
+
+	// Submit job for the compute shader execution.
+	// GROUP_SIZE_HEIGHT = GROUP_SIZE_WIDTH = 8
+	// NUM_VERTS_H = NUM_VERTS_V = 16
+	// As the result the function is called with the following parameters:
+	// glDispatchCompute(2, 2, 1)
+
+	/*glDispatchCompute(
+		(NUM_VERTS_H % GROUP_SIZE_WIDTH + NUM_VERTS_H) / GROUP_SIZE_WIDTH,
+		(NUM_VERTS_V % GROUP_SIZE_HEIGHT + NUM_VERTS_V) / GROUP_SIZE_HEIGHT,
+		1);*/
+
+	Texture heightmap("Textures\\Map.png");
+
+	heightmap.bindTexture(0);
+
+	glDispatchCompute(NUM_VERTS_H / GROUP_SIZE_WIDTH, NUM_VERTS_V / GROUP_SIZE_HEIGHT, 1);
+	//wait for it to end
+	glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+	// gIndexBufferBinding is equal to 0 (same as the compute shader binding)
+	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, outBuffer, 0);
+
+	return res;
+}
+
+GLuint GenerateObject()
+{
+	auto vbo = Precompute();
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(4 * sizeof(float)));
+
+	glBindVertexArray(0);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	return vao;
+}
+
+void DrawArrayVAO(GLuint vao, GLuint program)
+{
+	//glMemoryBarrier(GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT);
+	
+	//glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+	// Bind Vertex and Fragment rendering shaders
+	glBindVertexArray(vao);
+
+	glUseProgram(program);
+
+	//glEnableVertexAttribArray(iLocPosition);
+	//glEnableVertexAttribArray(iLocFillColor);
+
+	// Draw points from VBO
+
+	glDrawArrays(GL_POINTS, 0, 512 * 512);
+	glBindVertexArray(0);
 }
 
 int main()
@@ -244,30 +356,36 @@ int main()
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_BLEND);
+	glClearColor(0.1, 0.0, 0.3, 1.0);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	/*Prepare ze battlefield*/
 
 	/*Vertex Shader*/
-	Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
+	//Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
+	Shader vertShader("vcfshaders\\fractal\\dark.vert", Shader::VERTEX_SHADER);
+	Shader onemoreVertShader("vcfshaders\\onemore.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
-	Shader fragShader("vcfshaders\\scGeom\\dark.frag", Shader::FRAGMENT_SHADER);
+	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
+	Shader onemoreFragShader("vcfshaders\\onemore.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
 
+
 	/*Geometry Shader*/
-	Shader geomShader("vcfshaders\\scGeom\\dark.geom", Shader::GEOMETRY_SHADER);
+	Shader geomShader("vcfshaders\\fractal\\dark.geom", Shader::GEOMETRY_SHADER);
 
 	/*Final Program*/
 	ProgramShader progShader(vertShader, geomShader, fragShader);
+	ProgramShader onemoreProgShader(onemoreVertShader, onemoreFragShader);
 
 	ProgramShader csprogShader(compShader);
 
 	glCheckError();
 
-
+	GLuint generatedVAO = GenerateObject();
 
 
 	/*Model bolly("Models\\sphere.obj");
@@ -301,7 +419,8 @@ int main()
 
 	tex_perlin.generateMipmap();
 
-	Model cubeTexel("Models\\cubeTexel.obj");
+	//Model cubeTexel("Models\\cubeTexel.obj");
+	Model cubeTexel("Models\\circle16.obj");
 
 	progShader.use();
 
@@ -363,14 +482,14 @@ int main()
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-		progShader.use();
+		/*progShader.use();
 
 		glUniformMatrix4fv(glGetUniformLocation(progShader.id, "mvp"), 1, GL_FALSE, &cam[0][0]);
 		//glUniform1f(glGetUniformLocation(progShader, "lerp_value"), interp > 1.0f ? 2 - interp : interp);
 		glUniform1f(glGetUniformLocation(progShader, "time"), currentTime);
 
-		pt_cloud.draw();
-
+		pt_cloud.draw();*/
+		DrawArrayVAO(generatedVAO, onemoreProgShader);
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
