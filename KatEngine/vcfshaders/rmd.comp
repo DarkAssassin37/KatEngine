@@ -7,7 +7,7 @@
 #define deltaLocalMax 0.001
 #define DEBUG true
 #define DEBUG_PIXEL ivec2(400,512)
-layout(binding = 0) writeonly uniform image2D framebuffer;//rgba32f
+layout(binding = 0) writeonly uniform image2D framebuffer;//GL_INVALID_VALUE in UseProgram:
 layout(binding = 1) uniform sampler2D noise;
 
 layout(location = 0) uniform vec3 eye;
