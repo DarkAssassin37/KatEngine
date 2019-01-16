@@ -149,6 +149,7 @@
     <ClCompile Include="Shaders\ProgramShader.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="TerraGen.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -159,6 +160,7 @@
     <ClInclude Include="ProgramShader.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="messages.h" />
+    <ClInclude Include="TerraGen.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="utils\io.h" />
   </ItemGroup>

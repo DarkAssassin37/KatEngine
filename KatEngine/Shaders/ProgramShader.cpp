@@ -22,6 +22,10 @@ ProgramShader::ProgramShader(GLuint shader1, GLuint shader2, GLuint shader3)
 	}
 }
 
+ProgramShader::ProgramShader()
+{
+	id = -1;
+}
 ProgramShader::ProgramShader(GLuint shader1, GLuint shader2)
 {
 	id = glCreateProgram();
@@ -64,7 +68,7 @@ ProgramShader::ProgramShader(GLuint shader1)
 
 ProgramShader::~ProgramShader()
 {
-	glDeleteProgram(id);
+	//glDeleteProgram(id);
 }
 
 void ProgramShader::use() const
