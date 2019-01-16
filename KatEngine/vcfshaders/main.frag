@@ -11,6 +11,7 @@ uniform sampler2D shadowMap;
 
 
 uniform mat4 view;
+uniform vec3 camPosition;
 
 uniform	mat3 normalMatrix;
 uniform mat3 lightDirMatrix;
@@ -18,32 +19,21 @@ uniform mat3 lightDirMatrix;
 uniform	vec3 dirlightColor;
 uniform	vec3 lightDir;
 
+
 vec3 ambient;
-float ambientStrength = 0.5f;
+float ambientStrength = 0.35f;
 vec3 diffuse;
 vec3 specular;
 float specularStrength = 0.5f;
-float shininess = 64.0f;
+float shininess = 10.0f;
 
 void computeLightComponentsDirectional()
 {		
-
-	vec4 dirFragPosEye = v_v4Position;//nu uita: facut aici transormare pt ca luminile punctiforme sunt coord scena
-
-	vec3 cameraPosEye =  (-view * vec4(0.0f)).xyz;//in eye coordinates, the viewer is situated at the origin
-	
-	//transform normal
 	vec3 normalEye = normalize(normalMatrix * v_v4Normal.xyz);	
-	
-	//compute light direction
 	vec3 lightDirN = normalize(lightDirMatrix * lightDir);	
-
-	//compute view direction 
-	vec3 viewDirN = normalize(cameraPosEye - dirFragPosEye.xyz);
-	
-	//compute half vector
+	vec3 viewDirN = normalize(camPosition - v_v4Position.xyz);
 	vec3 halfVector = normalize(lightDirN + viewDirN);
-		
+
 	//compute ambient light
 	ambient = ambientStrength * dirlightColor;
 	
@@ -51,7 +41,7 @@ void computeLightComponentsDirectional()
 	diffuse = max(dot(normalEye, lightDirN), 0.0f) * dirlightColor;
 	
 	//compute specular light
-	float specCoeff = pow(max(dot(halfVector, normalEye), 0.0f), shininess);
+	float specCoeff = pow(max(dot(halfVector, normalEye), 0.0f), shininess);	
 	specular = specularStrength * specCoeff * dirlightColor;
 }
 
@@ -96,12 +86,10 @@ void main()
 	vec2 uv1 = normPos.xz;
 	uv1 += sin(normPos.y*2.0);
 	color = texture(colorMap1, uv1*10.0).rgb * heightBlend + texture(colorMap2, normPos.xz * 10.0).rgb * (1 - heightBlend);
-	color *= shadow * 0.8 + 0.2;
+	color *= shadow * 0.5 + 0.5;
 
-	color = color * min((ambient + (1.0f - shadow*0.5)*diffuse) + (1.0f - shadow*0.5)*specular, 1.0f);
+	color = color * min(ambient + diffuse + specular, 1.0f);
 
-
-	color = vec3(length(vec3(1.0,1.0,0.0).xyz - v_v4Position.xyz));
 	//color.xyz = normalizedCoords;
 	//color.z = normalizedCoords.z;
 	//color.xyz = vec3(texture(shadowMap, normalizedCoords.xy).r);

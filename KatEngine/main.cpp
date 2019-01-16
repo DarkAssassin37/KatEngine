@@ -42,7 +42,7 @@ mat4 getCamera()
 	cam_pos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
 	vec3 camUp = vec3(cam_rot * vec4(0, 1, 0, 1));
 
-	projection = perspective(90.0f, winWidth/winHeight, 0.1f, 100.0f);
+	projection = perspective(90.0f, winWidth/winHeight, 0.001f, 20.0f);
 	view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
 	return projection * view;
 }
@@ -223,7 +223,7 @@ mat4 computeLightSpaceTrMatrix()
 	mat4 lightProjection = ortho(-tube, tube, -tube, tube, near_plane, far_plane);
 
 	vec3 lightDirTr = vec3(glm::rotate(mat4(1.0f), radians(lightAngle), vec3(0.0f, 1.0f, 0.0f)) * vec4(lightDir, 1.0f));
-	mat4 lightView = lookAt(vec3(1.0, 1.0, 0.0), vec3(0, 0, 0), vec3(0.0f, 1.0f, 0.0f));
+	mat4 lightView = lookAt(lightDir, vec3(0, 0, 0), vec3(0.0f, 1.0f, 0.0f));
 
 	return lightProjection * lightView;
 }
@@ -265,7 +265,7 @@ vector<vec3> generatePointCloud()
 
 void initGlobals()
 {
-	lightDir = vec3(0.0f, 1.0f, 2.0f);
+	lightDir = vec3(1.0f, 1.0f, 0.0f);
 }
 
 int main()
@@ -316,6 +316,7 @@ int main()
 	glClearColor(0.1, 0.0, 0.3, 1.0);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	initGlobals();
 	initFBOs();
 	/*Prepare ze battlefield*/
 
@@ -480,12 +481,17 @@ int main()
 
 		mainShader.use();
 
+		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDir));
+		glUniform3fv(glGetUniformLocation(mainShader, "dirlightColor"), 1, glm::value_ptr(vec3(0.8,0.9,1.0)));
+
 		glUniformMatrix4fv(glGetUniformLocation(mainShader, "lightSpaceTrMatrix"), 1, GL_FALSE,
 			value_ptr(computeLightSpaceTrMatrix()));
 
 		/*glUniformMatrix4fv(glGetUniformLocation(mainShader, "lightSpaceTrMatrix"), 1, GL_FALSE,
 			&cam[0][0]);*/
 
+
+		glUniform3fv(glGetUniformLocation(mainShader, "camPosition"), 1, (GLfloat*)&cam_pos);
 
 		glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, &model[0][0]);
 		glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, &view[0][0]);

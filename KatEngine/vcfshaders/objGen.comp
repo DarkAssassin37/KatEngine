@@ -51,13 +51,18 @@ void main()
       outBuffer.data[offset].v.y =  texture(heightMap, pos).r * 1.0;
       outBuffer.data[offset].v.w = 1.0;
 
+	  float deltaN = 0.001;
+	  float dhX = texture(heightMap, pos + vec2(deltaN, 0.0)).r - texture(heightMap, pos - vec2(deltaN, 0.0)).r;
+	  float dhZ = texture(heightMap, pos + vec2(0.0, deltaN)).r - texture(heightMap, pos - vec2(0.0, deltaN)).r;
+
+	  vec3 normalX = vec3(deltaN, dhX, 0.0);
+	  vec3 normalZ = vec3(0.0, dhZ, deltaN);
+
       // Assign colour for the vertex
-      outBuffer.data[offset].c.b = 1.0;//storePos.x / float(gWidth);
-      outBuffer.data[offset].c.g = 1.0;
-      outBuffer.data[offset].c.r = 1.0;
+      outBuffer.data[offset].c.xyz = normalize(cross(normalZ, normalX));
 	  outBuffer.data[offset].c.w = 1.0;
 
-	  outBuffer.data[offset].c = texture(heightMap, pos);
+	  //outBuffer.data[offset].c = texture(heightMap, pos);
 
 
 
