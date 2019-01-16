@@ -25,7 +25,8 @@ using namespace glm;
 float winWidth = 640.0f, winHeight = 640.0f;
 float camDist = 2.0f;
 float cam_pitch = 0.0f, cam_yaw = 0.0f;
-vec3 cam_pos(0,0,1);
+float cam_speed = 1.0;
+vec3 cam_pos(0,1,1);
 mat4 projection, view;
 
 GLuint shadowMapFBO;
@@ -33,30 +34,42 @@ GLuint depthMapTexture;
 const GLuint SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 GLfloat lightAngle;
 vec3 lightDir;
+vec3 cam_forward, cam_backward, cam_up, cam_top, cam_down, cam_left, cam_right;
 
 mat4 getCamera()
 {
 
 	mat4 cam_rot = rotate(glm::identity<mat4>(), 2* pi<float>() * cam_yaw, vec3(0, 1, 0));
 	cam_rot = rotate(cam_rot, pi<float>() * cam_pitch, vec3(1, 0, 0));
-	cam_pos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
-	vec3 camUp = vec3(cam_rot * vec4(0, 1, 0, 1));
+	//cam_pos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
+	
+	cam_forward = vec3(cam_rot * vec4(0, 0, -1, 1));
+	cam_backward = vec3(cam_rot * vec4(0, 0, 1, 1));
+	cam_left = vec3(cam_rot * vec4(-1, 0, 0, 1));
+	cam_right = vec3(cam_rot * vec4(1, 0, 0, 1));
+	cam_top = vec3(cam_rot * vec4(0, 1, 0, 1));
+	cam_down = vec3(cam_rot * vec4(0, -1, 0, 1));
+
 
 	projection = perspective(90.0f, winWidth/winHeight, 0.001f, 20.0f);
-	view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
+	view = lookAt(cam_pos, cam_forward * 100.0f, cam_top);
 	return projection * view;
 }
 
 #pragma region Callbacks
 
+int keyPressed[512];
 bool captured = false;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	float amount = 0.01;
 	if (action == GLFW_PRESS)
 	{
+		keyPressed[key] = 1;
+
 		cam_pitch += key == GLFW_KEY_UP ? amount : 0 + key == GLFW_KEY_DOWN ? -amount : 0;
 		cam_yaw += key == GLFW_KEY_LEFT ? amount : 0 + key == GLFW_KEY_RIGHT ? -amount : 0;
+		
 		if (key == GLFW_KEY_C)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
@@ -69,17 +82,63 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			captured = false;
 		}
 
-		if (key == GLFW_KEY_J)
+		if (key == GLFW_KEY_V)
 		{
-			lightAngle += 5.0;
+			printf("Cam position: %ff, %ff, %ff", cam_pos.x, cam_pos.y, cam_pos.z);
+			printf("Cam pitch: %ff", cam_pitch);
+			printf("Cam yaw: %ff", cam_yaw);
+			captured = true;
 		}
 
-		if (key == GLFW_KEY_K)
-		{
-			lightAngle -= 5.0;
+
+		if (key == GLFW_KEY_1) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+		}
+		if (key == GLFW_KEY_2) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		if (key == GLFW_KEY_3) {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 	}
 
+	if (action == GLFW_RELEASE)
+		keyPressed[key] = 0;
+
+}
+
+//dt is in seconds
+void keyHeldCallback(double dt)
+{
+	float dtf = (float)dt;
+	if(keyPressed[GLFW_KEY_J])
+		lightAngle += dt * 70.0;
+
+	if (keyPressed[GLFW_KEY_L])
+		lightAngle -= dt * 70.0;
+
+	if (keyPressed[GLFW_KEY_LEFT_CONTROL])
+		cam_speed = 0.1f;
+	else cam_speed = 1.0f;
+
+	if (keyPressed[GLFW_KEY_W])
+		cam_pos += cam_forward * cam_speed * dtf;
+
+	if (keyPressed[GLFW_KEY_A])
+		cam_pos += cam_left * cam_speed * dtf;
+
+	if (keyPressed[GLFW_KEY_S])
+		cam_pos += cam_backward * cam_speed * dtf;
+
+	if (keyPressed[GLFW_KEY_D])
+		cam_pos += cam_right * cam_speed * dtf;
+
+	if (keyPressed[GLFW_KEY_Z])
+		cam_pos += cam_down * cam_speed * dtf;
+
+	if (keyPressed[GLFW_KEY_X])
+		cam_pos += cam_top * cam_speed * dtf;
+	
 }
 
 double lxpos, lypos;
@@ -223,7 +282,7 @@ mat4 computeLightSpaceTrMatrix()
 	mat4 lightProjection = ortho(-tube, tube, -tube, tube, near_plane, far_plane);
 
 	vec3 lightDirTr = vec3(glm::rotate(mat4(1.0f), radians(lightAngle), vec3(0.0f, 1.0f, 0.0f)) * vec4(lightDir, 1.0f));
-	mat4 lightView = lookAt(lightDir, vec3(0, 0, 0), vec3(0.0f, 1.0f, 0.0f));
+	mat4 lightView = lookAt(lightDirTr, vec3(0, 0, 0), vec3(0.0f, 1.0f, 0.0f));
 
 	return lightProjection * lightView;
 }
@@ -267,6 +326,8 @@ void initGlobals()
 {
 	lightDir = vec3(1.0f, 1.0f, 0.0f);
 }
+
+#define debug_LightDepth false
 
 int main()
 {
@@ -352,6 +413,7 @@ int main()
 	Texture tRocks(R"(Textures\Rocks.jpg)");
 	Texture tLeaves(R"(Textures\Leaves.jpg)");
 	Terra terrain(512, 512, R"(Textures\Map.png)");
+	//Terra terrain(512, 512, R"(Textures\Map2.tif)");
 
 
 	/*Model bolly("Models\\sphere.obj");
@@ -401,15 +463,18 @@ int main()
 	/*Render loop*/
 	while (!glfwWindowShouldClose(window))
 	{
+		#pragma region Animations & Time
 		/*Stopwatch - ms > fps :D 60 fps = < 16ms*/
-		float currentTime = glfwGetTime();
+		double currentTime = glfwGetTime();
 		nbFrames++;
 
 		if (currentTime - lastTime >= 1.0) { 
 			printf("%f ms/frame\n", 1000.0 / double(nbFrames));
 			nbFrames = 0;
-			lastTime += 1.0;
 		}
+
+		keyHeldCallback(currentTime - lastTime);
+		lastTime = currentTime;
 
 		/*Update animatio interpolation uniform*/
 		interp += 0.002f;
@@ -418,7 +483,7 @@ int main()
 		/*use the blank texture as compute shader frame buffer*/
 		//texbl.bindImage(0);
 		//tex_perlin.bindTexture(1);
-
+		#pragma endregion
 		/*Calculate the forward rays for the corners of the camera projection screen*/
 		mat4 cam = getCamera();
 		mat4 invcam = inverse(cam);
@@ -467,18 +532,20 @@ int main()
 		model = mat4(1.0);
 		glUniformMatrix4fv(glGetUniformLocation(depthShader, "model"),1, GL_FALSE, &model[0][0]);
 
-
+#if !debug_LightDepth
 		glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+#endif
 
 		terrain.Draw();
 
+#if !debug_LightDepth
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 		glViewport(0, 0, (int)winWidth, (int)winHeight);
-
+#endif
 		//#pragma endregion
-
+#if !debug_LightDepth
 		mainShader.use();
 
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDir));
@@ -520,7 +587,7 @@ int main()
 		glUniform1i(glGetUniformLocation(mainShader, "shadowMap"), 3);
 
 		terrain.Draw();
-
+#endif
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		glCheckError();
