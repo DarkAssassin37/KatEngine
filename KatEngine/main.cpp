@@ -26,6 +26,13 @@ float winWidth = 640.0f, winHeight = 640.0f;
 float camDist = 2.0f;
 float cam_pitch = 0.0f, cam_yaw = 0.0f;
 vec3 cam_pos(0,0,1);
+mat4 projection, view;
+
+GLuint shadowMapFBO;
+GLuint depthMapTexture;
+const GLuint SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
+GLfloat lightAngle;
+vec3 lightDir;
 
 mat4 getCamera()
 {
@@ -35,8 +42,8 @@ mat4 getCamera()
 	cam_pos = vec3(cam_rot * vec4(0, 0, camDist, 1)) ;
 	vec3 camUp = vec3(cam_rot * vec4(0, 1, 0, 1));
 
-	mat4 projection = perspective(90.0f, winWidth/winHeight, 0.1f, 100.0f);
-	mat4 view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
+	projection = perspective(90.0f, winWidth/winHeight, 0.1f, 100.0f);
+	view = lookAt(cam_pos, vec3(0, 0, 0), camUp);
 	return projection * view;
 }
 
@@ -55,10 +62,21 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			captured = true;
 		}
-		else if (key == GLFW_KEY_ESCAPE)
+
+		if (key == GLFW_KEY_ESCAPE)
 		{
 			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			captured = false;
+		}
+
+		if (key == GLFW_KEY_J)
+		{
+			lightAngle += 5.0;
+		}
+
+		if (key == GLFW_KEY_K)
+		{
+			lightAngle -= 5.0;
 		}
 	}
 
@@ -175,6 +193,43 @@ void APIENTRY openGlDebugCallback(GLenum source, GLenum type, GLuint id, GLenum 
 	return;
 }
 
+void initFBOs()
+{
+	//generate FBO ID
+	glGenFramebuffers(1, &shadowMapFBO);
+
+	//create depth texture for FBO
+	glGenTextures(1, &depthMapTexture);
+	glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT,
+		SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);//GL_CLAMP_TO_EDGE
+
+																		//attach texture to FBO
+	glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMapTexture, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+mat4 computeLightSpaceTrMatrix()
+{
+	const GLfloat near_plane = 0.001f, far_plane = 10.0;
+	float tube = 2.0f;
+	mat4 lightProjection = ortho(-tube, tube, -tube, tube, near_plane, far_plane);
+
+	vec3 lightDirTr = vec3(glm::rotate(mat4(1.0f), radians(lightAngle), vec3(0.0f, 1.0f, 0.0f)) * vec4(lightDir, 1.0f));
+	mat4 lightView = lookAt(vec3(1.0, 1.0, 0.0), vec3(0, 0, 0), vec3(0.0f, 1.0f, 0.0f));
+
+	return lightProjection * lightView;
+}
+
+
+
 vector<vec3> generatePointCloud()
 {	
 	Model frac(R"(E:\Programs\Mandelbulb3Dv199\Meshes\cuby.ply)");
@@ -208,35 +263,10 @@ vector<vec3> generatePointCloud()
 
 }
 
-int NUM_VERTS_H = 512;
-int NUM_VERTS_V = 512;
-int GROUP_SIZE_WIDTH = 8;
-int GROUP_SIZE_HEIGHT = 8;
-GLuint terraVAO, terraEBO;
-
-
-/*
-GLuint GenerateObject()
+void initGlobals()
 {
-	auto vbo = Precompute();
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
-	glBindVertexArray(vao);
-
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(4 * sizeof(float)));
-
-	glBindVertexArray(0);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	return vao;
-}*/
-
-
+	lightDir = vec3(0.0f, 1.0f, 2.0f);
+}
 
 int main()
 {
@@ -286,14 +316,19 @@ int main()
 	glClearColor(0.1, 0.0, 0.3, 1.0);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
+	initFBOs();
 	/*Prepare ze battlefield*/
 
 	/*Vertex Shader*/
 	//Shader vertShader("vcfshaders\\scGeom\\dark.vert", Shader::VERTEX_SHADER);
 	Shader vertShader("vcfshaders\\fractal\\dark.vert", Shader::VERTEX_SHADER);
+	Shader mainvShader("vcfshaders\\main.vert", Shader::VERTEX_SHADER);
+	Shader depthvShader("vcfshaders\\simpleDepthMap.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
 	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
+	Shader mainfShader("vcfshaders\\main.frag", Shader::FRAGMENT_SHADER);
+	Shader depthfShader("vcfshaders\\simpleDepthMap.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
@@ -303,13 +338,19 @@ int main()
 
 	/*Final Program*/
 	ProgramShader progShader(vertShader, geomShader, fragShader);
+	ProgramShader mainShader(mainvShader, mainfShader);
+	ProgramShader depthShader(depthvShader, depthfShader);
+
 
 
 	ProgramShader csprogShader(compShader);
 
 	glCheckError();
 
-	Terra terrain(512, 512, "Textures\\Map.png");
+	//Terra terrain(512, 512, R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
+	Texture tRocks(R"(Textures\Rocks.jpg)");
+	Texture tLeaves(R"(Textures\Leaves.jpg)");
+	Terra terrain(512, 512, R"(Textures\Map.png)");
 
 
 	/*Model bolly("Models\\sphere.obj");
@@ -380,6 +421,7 @@ int main()
 		/*Calculate the forward rays for the corners of the camera projection screen*/
 		mat4 cam = getCamera();
 		mat4 invcam = inverse(cam);
+		mat4 model = mat4(1.0);
 
 		vec4 calc = invcam * vec4(-1, -1, 0, 1); calc /= calc.w;
 		vec3 ray00 = vec3(calc);
@@ -413,6 +455,64 @@ int main()
 		glUniform1f(glGetUniformLocation(progShader, "time"), currentTime);
 
 		pt_cloud.draw();*/
+
+		#pragma region Shadows
+		depthShader.use();
+
+
+	    glUniformMatrix4fv(glGetUniformLocation(depthShader, "lightSpaceTrMatrix"), 1, GL_FALSE,
+			value_ptr(computeLightSpaceTrMatrix()));
+
+		model = mat4(1.0);
+		glUniformMatrix4fv(glGetUniformLocation(depthShader, "model"),1, GL_FALSE, &model[0][0]);
+
+
+		glBindFramebuffer(GL_FRAMEBUFFER, shadowMapFBO);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+
+		terrain.Draw();
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glViewport(0, 0, (int)winWidth, (int)winHeight);
+
+		//#pragma endregion
+
+		mainShader.use();
+
+		glUniformMatrix4fv(glGetUniformLocation(mainShader, "lightSpaceTrMatrix"), 1, GL_FALSE,
+			value_ptr(computeLightSpaceTrMatrix()));
+
+		/*glUniformMatrix4fv(glGetUniformLocation(mainShader, "lightSpaceTrMatrix"), 1, GL_FALSE,
+			&cam[0][0]);*/
+
+
+		glUniformMatrix4fv(glGetUniformLocation(mainShader, "model"), 1, GL_FALSE, &model[0][0]);
+		glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, &view[0][0]);
+		glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, &projection[0][0]);
+
+		mat3 normalMatrix = mat3(inverseTranspose(view*model));
+		glUniformMatrix3fv(glGetUniformLocation(mainShader, "normalMatrix"), 1, GL_FALSE, value_ptr(normalMatrix));
+
+		mat3 lightDirMatrix = glm::mat3(glm::inverseTranspose(view));
+		glUniformMatrix3fv(glGetUniformLocation(mainShader, "lightDirMatrix"), 1, GL_FALSE, value_ptr(lightDirMatrix));
+
+
+		//glUniformMatrix4fv(glGetUniformLocation(mainShader, "view"), 1, GL_FALSE, &lightView[0][0]);
+
+		//glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, &model[0][0]);
+		//glUniformMatrix4fv(glGetUniformLocation(mainShader, "projection"), 1, GL_FALSE, &lightProjection[0][0]);
+
+		tRocks.bindTexture(0);
+		glUniform1i(glGetUniformLocation(mainShader, "colorMap1"), 0);
+
+		tLeaves.bindTexture(1);
+		glUniform1i(glGetUniformLocation(mainShader, "colorMap2"), 1);
+
+		glActiveTexture(GL_TEXTURE3);
+		glBindTexture(GL_TEXTURE_2D, depthMapTexture);
+		glUniform1i(glGetUniformLocation(mainShader, "shadowMap"), 3);
+
 		terrain.Draw();
 
 		glfwSwapBuffers(window);

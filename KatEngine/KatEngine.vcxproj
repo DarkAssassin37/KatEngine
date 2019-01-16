@@ -178,8 +178,8 @@
     <None Include="vcfshaders\fractal\dark.vert" />
     <None Include="vcfshaders\mainTitle.frag" />
     <None Include="vcfshaders\objGen.comp" />
-    <None Include="vcfshaders\onemore.frag" />
-    <None Include="vcfshaders\onemore.vert" />
+    <None Include="vcfshaders\main.frag" />
+    <None Include="vcfshaders\main.vert" />
     <None Include="vcfshaders\raymarch.comp" />
     <None Include="vcfshaders\raytrace.glsl" />
     <None Include="vcfshaders\rmd - Copy.comp" />
@@ -190,6 +190,8 @@
     <None Include="vcfshaders\scGeom\dark.vert" />
     <None Include="vcfshaders\shaderStartMultL.frag" />
     <None Include="vcfshaders\shaderStartMultL.vert" />
+    <None Include="vcfshaders\simpleDepthMap.frag" />
+    <None Include="vcfshaders\simpleDepthMap.vert" />
     <None Include="vcfshaders\tes.geom" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

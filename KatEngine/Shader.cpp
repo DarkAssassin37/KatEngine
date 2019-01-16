@@ -36,7 +36,7 @@ Shader::Shader(const char* filepath, GLint shaderType)
 
 Shader::~Shader()
 {
-	glDeleteShader(id);
+	//glDeleteShader(id);
 }
 
 Shader::operator GLuint() const

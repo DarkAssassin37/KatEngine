@@ -103,7 +103,9 @@
     <None Include="vcfshaders\scGeom\dark.vert" />
     <None Include="vcfshaders\mainTitle.frag" />
     <None Include="vcfshaders\objGen.comp" />
-    <None Include="vcfshaders\onemore.vert" />
-    <None Include="vcfshaders\onemore.frag" />
+    <None Include="vcfshaders\main.frag" />
+    <None Include="vcfshaders\main.vert" />
+    <None Include="vcfshaders\simpleDepthMap.frag" />
+    <None Include="vcfshaders\simpleDepthMap.vert" />
   </ItemGroup>
 </Project>

@@ -1,0 +1,1 @@
+copy /Y "D:\Projects\C++\KatResources\Design\Map.png" Map.png

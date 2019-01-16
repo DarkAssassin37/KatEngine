@@ -28,7 +28,7 @@ Terra::Terra(int vertWidth, int vertHeight, const char * texturePath)
 	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)4);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(4 * sizeof(float)));
 
 
 
@@ -89,8 +89,8 @@ Terra::Terra(int vertWidth, int vertHeight, const char * texturePath)
 	glBindVertexArray(0);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	Shader onemoreVertShader("vcfshaders\\onemore.vert", Shader::VERTEX_SHADER);
-	Shader onemoreFragShader("vcfshaders\\onemore.frag", Shader::FRAGMENT_SHADER);
+	Shader onemoreVertShader("vcfshaders\\main.vert", Shader::VERTEX_SHADER);
+	Shader onemoreFragShader("vcfshaders\\main.frag", Shader::FRAGMENT_SHADER);
 	onemoreProgShader = ProgramShader(onemoreVertShader, onemoreFragShader);
 }
 
@@ -138,7 +138,7 @@ void Terra::Draw()
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
 
-	glUseProgram(onemoreProgShader);
+	//glUseProgram(onemoreProgShader);
 
 	//glEnableVertexAttribArray(iLocPosition);
 	//glEnableVertexAttribArray(iLocFillColor);

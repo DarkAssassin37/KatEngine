@@ -47,18 +47,19 @@ void main()
 
 
 
-      outBuffer.data[offset].v.xy = pos.xy * 2.0 - 1.0;// cos(alpha) * 0.7;
-      outBuffer.data[offset].v.z = 0.0;
+      outBuffer.data[offset].v.xz = pos.xy * 2.0 - 1.0;// cos(alpha) * 0.7;
+      outBuffer.data[offset].v.y =  texture(heightMap, pos).r * 1.0;
       outBuffer.data[offset].v.w = 1.0;
 
       // Assign colour for the vertex
-      outBuffer.data[offset].c.z = storePos.x / float(gWidth);
-      outBuffer.data[offset].c.y = storePos.y / float(gHeight);
-      outBuffer.data[offset].c.x = 1.0;
+      outBuffer.data[offset].c.b = 1.0;//storePos.x / float(gWidth);
+      outBuffer.data[offset].c.g = 1.0;
+      outBuffer.data[offset].c.r = 1.0;
+	  outBuffer.data[offset].c.w = 1.0;
 
-	  outBuffer.data[offset].c *= texture(heightMap, pos).x;
+	  outBuffer.data[offset].c = texture(heightMap, pos);
 
-      outBuffer.data[offset].c.w = 1.0;
+
 
 	  /*if(storePos.y < gHeight && storePos.x < gWidth)
 	  {

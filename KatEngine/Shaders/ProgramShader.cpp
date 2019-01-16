@@ -18,7 +18,7 @@ ProgramShader::ProgramShader(GLuint shader1, GLuint shader2, GLuint shader3)
 		GLsizei length;
 		glGetProgramInfoLog(id, 10239, &length, log);
 		fprintf(stderr, "Linker log:\n%s\n", log);
-		exit(41);
+		fatal_error("");
 	}
 }
 ProgramShader::ProgramShader()
@@ -42,7 +42,7 @@ ProgramShader::ProgramShader(GLuint shader1, GLuint shader2)
 		GLsizei length;
 		glGetProgramInfoLog(id, 10239, &length, log);
 		fprintf(stderr, "Linker log:\n%s\n", log);
-		exit(41);
+		fatal_error("");
 	}
 }
 
@@ -68,7 +68,7 @@ ProgramShader::ProgramShader(GLuint shader1)
 
 ProgramShader::~ProgramShader()
 {
-	glDeleteProgram(id);
+	///glDeleteProgram(id);
 }
 
 void ProgramShader::use() const

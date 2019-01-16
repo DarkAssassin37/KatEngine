@@ -64,7 +64,6 @@ Model::Model(const char* filepath)
 	if(!meshes[0].uvs.empty())
 		glBufferData(GL_ARRAY_BUFFER, meshes[0].uvs.size() * sizeof(vec2), &meshes[0].uvs[0], GL_STATIC_DRAW);
 
-
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, meshes[0].indices.size() * sizeof(unsigned int), &meshes[0].indices[0], GL_STATIC_DRAW);
 
@@ -117,7 +116,7 @@ void Model::draw()
 	glDrawElements(GL_TRIANGLES, meshes[0].indices.size(), GL_UNSIGNED_INT, NULL);
 }
 
-std::vector<glm::vec3> Model::fVertices()
+std::vector<vec3> Model::fVertices()
 {
 	return meshes[0].vertices;
 }
@@ -127,7 +126,7 @@ std::vector<unsigned> Model::fIndices()
 	return meshes[0].indices;
 }
 
-std::vector<glm::vec3> Model::fNormals()
+std::vector<vec3> Model::fNormals()
 {
 	return meshes[0].normals;
 }
