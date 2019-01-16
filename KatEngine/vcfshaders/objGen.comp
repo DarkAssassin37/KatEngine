@@ -61,7 +61,7 @@ void main()
 
 
 
-	  if(storePos.y < gHeight && storePos.x < gWidth)
+	  /*if(storePos.y < gHeight && storePos.x < gWidth)
 	  {
 		  outBuffer2.data[offset] = 0;
 		  outBuffer2.data[offsetNextRow + 0] = 0;
@@ -74,5 +74,16 @@ void main()
 		  outBuffer2.data[offset] = 0;
 		  outBuffer2.data[offsetNextRow + 1] = 0;
 		  outBuffer2.data[offset + 0] = 0;
+	  }*/
+
+	  if(storePos.y < gHeight - 1 && storePos.x < gWidth - 1)
+	  {
+		  outBuffer2.data[offset * 6 + 0] = offset + 0;
+		  outBuffer2.data[offset * 6 + 1] = offsetNextRow + 0;
+		  outBuffer2.data[offset * 6 + 2] = offset + 1;
+
+		  outBuffer2.data[offset * 6 + 3] = offset + 1;
+		  outBuffer2.data[offset * 6 + 4] = offsetNextRow + 0;
+		  outBuffer2.data[offset * 6 + 5] = offsetNextRow + 1;
 	  }
 }

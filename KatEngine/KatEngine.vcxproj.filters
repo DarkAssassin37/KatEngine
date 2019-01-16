@@ -42,7 +42,7 @@
     <ClCompile Include="PointCloud.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TerraGen.cpp">
+    <ClCompile Include="Terra.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,7 +74,7 @@
     <ClInclude Include="PointCloud.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TerraGen.h">
+    <ClInclude Include="Terra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
