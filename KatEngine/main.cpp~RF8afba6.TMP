@@ -556,7 +556,6 @@ int main()
 	//Terra terrain(512, 512, R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	Texture tRocks(R"(Textures\Rocks.jpg)");
 	Texture tLeaves(R"(Textures\Leaves.jpg)");
-	Texture tSnow(R"(Textures\snow.jpg)");
 	Terra terrain(512, 512, R"(Textures\Map.png)");
 	//Terra terrain(512, 512, R"(Textures\Map2.tif)");
 
@@ -771,10 +770,7 @@ int main()
 		glViewport(0, 0, (int)winWidth, (int)winHeight);
 		baseShader.use();
 		glUniform1i(glGetUniformLocation(baseShader, "t_albedo"), 0);
-		glUniform1i(glGetUniformLocation(baseShader, "t_roughness"), 2);
-		glUniform1f(glGetUniformLocation(baseShader, "time"), currentTime);
 		texbl.bindTexture(0);
-		tSnow.bindTexture(2);
 		mat4 id(1.0);
 		glUniformMatrix4fv(glGetUniformLocation(baseShader, "mvp"), 1, GL_FALSE, &id[0][0]);
 

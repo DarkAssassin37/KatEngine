@@ -143,7 +143,7 @@ void main()
 	uv1 += sin(normPos.y*2.0);
 	vec3 difcolor = texture(colorMap1, uv1*10.0).rgb * heightBlend + texture(colorMap2, normPos.xz * 10.0).rgb * (1 - heightBlend);
 	color = difcolor;
-	color *= shadow * 0.5 + 0.5;
+	color *= shadow * 0.8 + 0.2;
 
 	color = color * min(ambient + diffuse + specular, 1.0f);
 

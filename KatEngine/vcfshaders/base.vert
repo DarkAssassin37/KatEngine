@@ -18,5 +18,6 @@ void main()
 
 	v_normal = normCurr;
 	v_texCoord = uvs;
+	v_texCoord.y = 1.0- v_texCoord.y;
 
 }

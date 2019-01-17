@@ -20,7 +20,7 @@
 #include "SkyBox.hpp"
 #include "ShaderG.hpp"
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
-#define KAT_TEXTURE_SIZE 2048
+#define KAT_TEXTURE_SIZE 1024
 
 using namespace std;
 using namespace glm;
@@ -525,14 +525,12 @@ int main()
 	Shader mainvShader("vcfshaders\\main.vert", Shader::VERTEX_SHADER);
 	Shader depthvShader("vcfshaders\\simpleDepthMap.vert", Shader::VERTEX_SHADER);
 	Shader skyboxvShader("vcfshaders\\skyboxShader.vert", Shader::VERTEX_SHADER);
-	Shader basevShader("vcfshaders\\base.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
 	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
 	Shader mainfShader("vcfshaders\\main.frag", Shader::FRAGMENT_SHADER);
 	Shader depthfShader("vcfshaders\\simpleDepthMap.frag", Shader::FRAGMENT_SHADER);
 	Shader skyboxfShader("vcfshaders\\skyboxShader.frag", Shader::FRAGMENT_SHADER);
-	Shader basefShader("vcfshaders\\base.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
@@ -544,7 +542,6 @@ int main()
 	ProgramShader progShader(vertShader, geomShader, fragShader);
 	ProgramShader mainShader(mainvShader, mainfShader);
 	ProgramShader depthShader(depthvShader, depthfShader);
-	ProgramShader baseShader(basevShader, basefShader);
 	//ProgramShader skyboxShader(skyboxvShader, skyboxfShader);
 
 
@@ -556,7 +553,6 @@ int main()
 	//Terra terrain(512, 512, R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	Texture tRocks(R"(Textures\Rocks.jpg)");
 	Texture tLeaves(R"(Textures\Leaves.jpg)");
-	Texture tSnow(R"(Textures\snow.jpg)");
 	Terra terrain(512, 512, R"(Textures\Map.png)");
 	//Terra terrain(512, 512, R"(Textures\Map2.tif)");
 
@@ -565,26 +561,29 @@ int main()
 	bolly.loadMeshes(0, 0);*/
 	initSkyBox();
 	Plane plane;
-	Texture texbl(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE);//blank texture 
 
 	unsigned int hdrFBO;
 	glGenFramebuffers(1, &hdrFBO);
 	glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
+	unsigned int colorBuffers[2];
+	glGenTextures(2, colorBuffers);
+	for (unsigned int i = 0; i < 2; i++)
+	{
+		glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
+		glTexImage2D(
+			GL_TEXTURE_2D, 0, GL_RGB16F, (int)winWidth, (int)winHeight, 0, GL_RGB, GL_FLOAT, NULL
+		);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		// attach texture to framebuffer
+		glFramebufferTexture2D(
+			GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0
+		);
+	}
 
-	glBindTexture(GL_TEXTURE_2D, texbl.id);
-	glTexImage2D(
-		GL_TEXTURE_2D, 0, GL_RGB16F, KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE, 0, GL_RGB, GL_FLOAT, NULL
-	);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	// attach texture to framebuffer
-	glFramebufferTexture2D(
-		GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, texbl.id, 0
-	);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 
 
@@ -601,7 +600,7 @@ int main()
 
 	//Texture tex(R"(D:\Projects\C++\KatEngine\Pukman\winter.jpg)");
 	//Texture tex2(R"(D:\Photos\20171712_105524.jpg)");
-
+	Texture texbl(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE);//blank texture 
 	Texture tex_perlin = Texture::FromGenFunction(KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE,[](int* dat, int w, int h)
 	{
 		srand(time(NULL));
@@ -711,18 +710,10 @@ int main()
 
 #if !debug_LightDepth
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-		glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glViewport(0, 0, KAT_TEXTURE_SIZE, KAT_TEXTURE_SIZE);
-
+		glViewport(0, 0, (int)winWidth, (int)winHeight);
 #endif
 		//#pragma endregion
 #if !debug_LightDepth
-
-		skyboxShader.useShaderProgram();
-		mySkyBox.Draw(skyboxShader.shaderProgram, view * model, projection);
-
 		mainShader.use();
 
 		glUniform3fv(glGetUniformLocation(mainShader, "lightDir"), 1, glm::value_ptr(lightDir));
@@ -765,20 +756,9 @@ int main()
 
 		terrain.Draw();
 #endif
+		skyboxShader.useShaderProgram();
+		mySkyBox.Draw(skyboxShader.shaderProgram, view * model, projection);
 
-
-		glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		glViewport(0, 0, (int)winWidth, (int)winHeight);
-		baseShader.use();
-		glUniform1i(glGetUniformLocation(baseShader, "t_albedo"), 0);
-		glUniform1i(glGetUniformLocation(baseShader, "t_roughness"), 2);
-		glUniform1f(glGetUniformLocation(baseShader, "time"), currentTime);
-		texbl.bindTexture(0);
-		tSnow.bindTexture(2);
-		mat4 id(1.0);
-		glUniformMatrix4fv(glGetUniformLocation(baseShader, "mvp"), 1, GL_FALSE, &id[0][0]);
-
-		plane.draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
