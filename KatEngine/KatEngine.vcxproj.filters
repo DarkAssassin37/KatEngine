@@ -45,6 +45,12 @@
     <ClCompile Include="Terra.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ShaderG.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SkyBox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="messages.h">
@@ -77,6 +83,12 @@
     <ClInclude Include="Terra.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ShaderG.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SkyBox.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="vcfshaders\fractal\dark.frag" />
@@ -107,5 +119,7 @@
     <None Include="vcfshaders\main.vert" />
     <None Include="vcfshaders\simpleDepthMap.frag" />
     <None Include="vcfshaders\simpleDepthMap.vert" />
+    <None Include="vcfshaders\skyboxShader.vert" />
+    <None Include="vcfshaders\skyboxShader.frag" />
   </ItemGroup>
 </Project>

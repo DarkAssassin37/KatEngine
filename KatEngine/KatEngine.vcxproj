@@ -146,9 +146,11 @@
     <ClCompile Include="Plane.cpp" />
     <ClCompile Include="PointCloud.cpp" />
     <ClCompile Include="Shader.cpp" />
+    <ClCompile Include="ShaderG.cpp" />
     <ClCompile Include="Shaders\ProgramShader.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SkyBox.cpp" />
     <ClCompile Include="Terra.cpp" />
     <ClCompile Include="Texture.cpp" />
   </ItemGroup>
@@ -160,6 +162,8 @@
     <ClInclude Include="ProgramShader.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="messages.h" />
+    <ClInclude Include="ShaderG.hpp" />
+    <ClInclude Include="SkyBox.hpp" />
     <ClInclude Include="Terra.h" />
     <ClInclude Include="Texture.h" />
     <ClInclude Include="utils\io.h" />
@@ -192,6 +196,8 @@
     <None Include="vcfshaders\shaderStartMultL.vert" />
     <None Include="vcfshaders\simpleDepthMap.frag" />
     <None Include="vcfshaders\simpleDepthMap.vert" />
+    <None Include="vcfshaders\skyboxShader.frag" />
+    <None Include="vcfshaders\skyboxShader.vert" />
     <None Include="vcfshaders\tes.geom" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

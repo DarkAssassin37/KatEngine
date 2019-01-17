@@ -16,6 +16,9 @@
 #include "Plane.h"
 #include "PointCloud.h"
 #include "Terra.h"
+#include <stb_image.h>
+#include "SkyBox.hpp"
+#include "ShaderG.hpp"
 #define glCheckError() glCheckError_(__FILE__, __LINE__) 
 #define KAT_TEXTURE_SIZE 1024
 
@@ -320,8 +323,8 @@ mat4 computeLightSpaceTrMatrix()
 
 void initLights()
 {
-	float linear = 0.09;
-	float quadratic = 0.017;
+	float linear = 3.0;
+	float quadratic = 10.0;
 
 	PointLight p1 = {
 		vec3(0, 1, 0), //pos
@@ -334,12 +337,12 @@ void initLights()
 	};
 
 	PointLight p2 = {
-		vec3(23.775629, -0.657954, 19.773302),
+		vec3(0, 1, -0.95),
 		1.0,
 		linear,
 		quadratic,
 		vec3(1.0f, 0.78f, 0.78f) * 0.1f,
-		vec3(0.51f, 0.86f, 1.0f),
+		vec3(1.0f, 0.45f, 0.0f),
 		vec3(0.31f, 0.648f, 0.78f)
 	};
 
@@ -354,11 +357,10 @@ void sendLightUnif(GLuint shader)
 	for (GLuint i = 0; i < 2; i++)
 	{
 		std::string number = std::to_string(i);
-
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].position").c_str()), 3, &pointLights[i].position.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].ambient").c_str()), 3, &pointLights[i].ambient.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].diffuse").c_str()), 3, &pointLights[i].diffuse.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].specular").c_str()), 3, &pointLights[i].specular.x);
+		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].position").c_str()), 1, (GLfloat*)&pointLights[i].position.x);
+		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].ambient").c_str()), 1, &pointLights[i].ambient.x);
+		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].diffuse").c_str()), 1, &pointLights[i].diffuse.x);
+		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].specular").c_str()), 1, &pointLights[i].specular.x);
 		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].constant").c_str()), pointLights[i].constant);
 		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].linear").c_str()), pointLights[i].linear);
 		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].quadratic").c_str()), pointLights[i].quadratic);
@@ -403,6 +405,62 @@ vector<vec3> generatePointCloud()
 void initGlobals()
 {
 	lightDir = vec3(1.0f, 1.0f, 0.0f);
+}
+
+GLuint LoadSkyBoxTextures(std::vector<const GLchar*> skyBoxFaces)
+{
+	GLuint textureID;
+	glGenTextures(1, &textureID);
+	glActiveTexture(GL_TEXTURE0);
+
+	int width, height, n;
+	unsigned char* image;
+	int force_channels = 3;
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+	for (GLuint i = 0; i < skyBoxFaces.size(); i++)
+	{
+		image = stbi_load(skyBoxFaces[i], &width, &height, &n, force_channels);
+		if (!image) {
+			fprintf(stderr, "ERROR: could not load %s\n", skyBoxFaces[i]);
+			return false;
+		}
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+			GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, image
+		);
+	}
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	return textureID;
+}
+
+gps::SkyBox mySkyBox;
+gps::ShaderG skyboxShader;
+void initSkyBox()
+{
+	std::vector<const GLchar*> faces;
+	faces.push_back("textures/skybox/right.tga");
+	faces.push_back("textures/skybox/left.tga");
+	faces.push_back("textures/skybox/top.tga");
+	faces.push_back("textures/skybox/bottom.tga");
+	faces.push_back("textures/skybox/back.tga");
+	faces.push_back("textures/skybox/front.tga");
+
+	mySkyBox.Load(faces);
+	skyboxShader.loadShader("vcfshaders/skyboxShader.vert", "vcfshaders/skyboxShader.frag");
+	skyboxShader.useShaderProgram();
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "view"), 1, GL_FALSE,
+		glm::value_ptr(view));
+
+	projection = glm::perspective(glm::radians(45.0f), winWidth / winHeight, 0.1f, 1000.0f);
+	glUniformMatrix4fv(glGetUniformLocation(skyboxShader.shaderProgram, "projection"), 1, GL_FALSE,
+		glm::value_ptr(projection));
 }
 
 #define debug_LightDepth false
@@ -466,11 +524,13 @@ int main()
 	Shader vertShader("vcfshaders\\fractal\\dark.vert", Shader::VERTEX_SHADER);
 	Shader mainvShader("vcfshaders\\main.vert", Shader::VERTEX_SHADER);
 	Shader depthvShader("vcfshaders\\simpleDepthMap.vert", Shader::VERTEX_SHADER);
+	Shader skyboxvShader("vcfshaders\\skyboxShader.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
 	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
 	Shader mainfShader("vcfshaders\\main.frag", Shader::FRAGMENT_SHADER);
 	Shader depthfShader("vcfshaders\\simpleDepthMap.frag", Shader::FRAGMENT_SHADER);
+	Shader skyboxfShader("vcfshaders\\skyboxShader.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
@@ -482,6 +542,7 @@ int main()
 	ProgramShader progShader(vertShader, geomShader, fragShader);
 	ProgramShader mainShader(mainvShader, mainfShader);
 	ProgramShader depthShader(depthvShader, depthfShader);
+	//ProgramShader skyboxShader(skyboxvShader, skyboxfShader);
 
 
 
@@ -498,8 +559,8 @@ int main()
 
 	/*Model bolly("Models\\sphere.obj");
 	bolly.loadMeshes(0, 0);*/
-
-	//Plane plane;
+	initSkyBox();
+	Plane plane;
 
 	vector<vec3> points = generatePointCloud();
 
@@ -670,6 +731,10 @@ int main()
 
 		terrain.Draw();
 #endif
+		skyboxShader.useShaderProgram();
+		mySkyBox.Draw(skyboxShader.shaderProgram, view * model, projection);
+
+
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 		glCheckError();

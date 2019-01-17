@@ -11,6 +11,7 @@ uniform sampler2D shadowMap;
 
 uniform mat4 model;
 uniform mat4 view;
+uniform mat4 projection;
 uniform vec3 camPosition;
 
 uniform	mat3 normalMatrix;
@@ -140,12 +141,33 @@ void main()
 
 	vec2 uv1 = normPos.xz;
 	uv1 += sin(normPos.y*2.0);
-	color = texture(colorMap1, uv1*10.0).rgb * heightBlend + texture(colorMap2, normPos.xz * 10.0).rgb * (1 - heightBlend);
+	vec3 difcolor = texture(colorMap1, uv1*10.0).rgb * heightBlend + texture(colorMap2, normPos.xz * 10.0).rgb * (1 - heightBlend);
+	color = difcolor;
 	color *= shadow * 0.5 + 0.5;
 
 	color = color * min(ambient + diffuse + specular, 1.0f);
 
-	color =  min(ambientPoint + diffusePoint + specularPoint, 1.0f);;
+	color +=  min(ambientPoint + diffusePoint + specularPoint, 1.0f);
+
+	float snow = dot(vec3(0,1,0), v_v4Normal.xyz);
+	snow += pow(1.0 - v_v4Position.y,5.0);
+	snow = min(snow, 1.0);
+
+	color = color * (1-snow) + snow * vec3(1.0,1.0,1.0);
+
+	vec3 fogColor = vec3(0.9f,0.9f,1.0f)*0.7;
+
+	float fogDensity = 0.7f;
+	float fragmentDistance = length(projection * view * model * v_v4Position);
+	fragmentDistance = 1.0 - fragmentDistance;
+	float fogStr = exp(-pow(fragmentDistance * fogDensity, 2));
+
+	fogStr = 1.0 - fogStr;
+	fogStr = clamp(fogStr, 0.0, 1.0);
+
+	color = color * (1-fogStr) + fogStr * fogColor;
+
+
 	//color.xyz = normalizedCoords;
 	//color.z = normalizedCoords.z;
 	//color.xyz = vec3(texture(shadowMap, normalizedCoords.xy).r);
