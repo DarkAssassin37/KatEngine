@@ -9,7 +9,7 @@ uniform sampler2D colorMap1;
 uniform sampler2D colorMap2;
 uniform sampler2D shadowMap;
 
-
+uniform mat4 model;
 uniform mat4 view;
 uniform vec3 camPosition;
 
@@ -19,6 +19,19 @@ uniform mat3 lightDirMatrix;
 uniform	vec3 dirlightColor;
 uniform	vec3 lightDir;
 
+struct PointLight {    
+    vec3 position;
+    
+    float constant;
+    float linear;
+    float quadratic;  
+
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+}; 
+#define NR_POINT_LIGHTS 2
+uniform PointLight pointLights[2];
 
 vec3 ambient;
 float ambientStrength = 0.35f;
@@ -26,6 +39,10 @@ vec3 diffuse;
 vec3 specular;
 float specularStrength = 0.5f;
 float shininess = 10.0f;
+
+vec3 ambientPoint = vec3(0.0f);
+vec3 diffusePoint = vec3(0.0f);
+vec3 specularPoint = vec3(0.0f);
 
 void computeLightComponentsDirectional()
 {		
@@ -45,6 +62,30 @@ void computeLightComponentsDirectional()
 	specular = specularStrength * specCoeff * dirlightColor;
 }
 
+void CalcPointLight(PointLight light)
+{
+	vec3 viewDirN = normalize(camPosition - v_v4Position.xyz);
+	vec3 fragPos = (model * v_v4Position).xyz;
+    vec3 lightDir = normalize(light.position - fragPos);
+    // diffuse shading
+    float diff = max(dot(v_v4Normal.xyz, lightDir), 0.0);
+    // specular shading
+    vec3 reflectDir = reflect(-lightDir, v_v4Normal.xyz);
+    float spec = pow(max(dot(viewDirN, reflectDir), 0.0), shininess);
+    // attenuation
+    float distance    = length(light.position - fragPos);
+    float attenuation = 1.0 / (light.constant + light.linear * distance + 
+  			     light.quadratic * (distance * distance));  
+
+    // combine results
+    ambientPoint  += light.ambient  * attenuation;
+    diffusePoint  += light.diffuse  * diff * attenuation;
+    specularPoint += light.specular * spec * attenuation;
+	//ambient = vec3(0.0f);
+	//specular = vec3(0.0f);
+	//diffuse = vec3(attenuation);
+	//diffuse = clamp(diffuse,0.0,1.0);
+	}
 
 float computeShadow()
 {	
@@ -68,8 +109,22 @@ float computeShadow()
 
 void main()
 {
+	float linear = 5.0;
+	float quadratic = 10.0;
 	vec3 color;
 	computeLightComponentsDirectional();
+		PointLight p1 = {
+		vec3(0.1, 0.2, 0), //pos
+		1.0,
+		linear,
+		quadratic,
+		vec3(1.0f, 0.78f, 0.78f) * 0.1f, //ambient
+		vec3(0.51f, 0.86f, 1.0f), //diffuse
+		vec3(0.31f, 0.648f, 0.78f) //specular
+	};
+	for(int i = 0; i < NR_POINT_LIGHTS; i++)
+       CalcPointLight(pointLights[i]);
+	//CalcPointLight(pointLights[0]);
 
 	float shadow = computeShadow();
 
@@ -90,6 +145,7 @@ void main()
 
 	color = color * min(ambient + diffuse + specular, 1.0f);
 
+	color =  min(ambientPoint + diffusePoint + specularPoint, 1.0f);;
 	//color.xyz = normalizedCoords;
 	//color.z = normalizedCoords.z;
 	//color.xyz = vec3(texture(shadowMap, normalizedCoords.xy).r);

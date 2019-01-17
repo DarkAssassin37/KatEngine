@@ -48,8 +48,7 @@ const GLuint SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 GLfloat lightAngle;
 vec3 lightDir;
 vec3 cam_forward, cam_backward, cam_up, cam_top, cam_down, cam_left, cam_right;
-PointLight pointLights[2];
-
+vec3 pointLights[2];
 mat4 getCamera()
 {
 	mat4 cam_rot = rotate(glm::identity<mat4>(), 2* pi<float>() * cam_yaw, vec3(0, 1, 0));
@@ -343,14 +342,13 @@ void initLights()
 		vec3(0.31f, 0.648f, 0.78f)
 	};
 
-	pointLights[0] = p1;
-	pointLights[1] = p2;
+	pointLights.push_back(p1);
 
+	//TODO: call this
 }
 
 void sendLightUnif(GLuint shader)
 {
-
 	for (GLuint i = 0; i < 2; i++)
 	{
 		std::string number = std::to_string(i);
@@ -532,12 +530,10 @@ int main()
 
 	progShader.use();
 
-	int loc1 = glGetUniformLocation(progShader, "geom_Vert");
 	glUniform3fv(glGetUniformLocation(progShader, "geom_Vert"), cubeTexel.fVertices().size() * 6, (GLfloat*)&cubeTexel.fVertices()[0]);
 	glUniform1iv(glGetUniformLocation(progShader, "geom_Ind"), cubeTexel.fIndices().size(), (GLint*)&cubeTexel.fIndices()[0]);
 	glUniform1i(glGetUniformLocation(progShader, "geom_INum"), cubeTexel.fIndices().size());
 
-	mainShader.use();
 	sendLightUnif(mainShader);
 
 

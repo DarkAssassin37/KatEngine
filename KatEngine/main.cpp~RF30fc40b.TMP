@@ -48,8 +48,7 @@ const GLuint SHADOW_WIDTH = 4096, SHADOW_HEIGHT = 4096;
 GLfloat lightAngle;
 vec3 lightDir;
 vec3 cam_forward, cam_backward, cam_up, cam_top, cam_down, cam_left, cam_right;
-PointLight pointLights[2];
-
+vector<PointLight> pointLights;
 mat4 getCamera()
 {
 	mat4 cam_rot = rotate(glm::identity<mat4>(), 2* pi<float>() * cam_yaw, vec3(0, 1, 0));
@@ -323,46 +322,29 @@ void initLights()
 	float linear = 0.09;
 	float quadratic = 0.017;
 
-	PointLight p1 = {
-		vec3(0, 1, 0), //pos
-		1.0,
-		linear,
-		quadratic,
-		vec3(1.0f, 0.78f, 0.78f) * 0.1f, //ambient
-		vec3(0.51f, 0.86f, 1.0f), //diffuse
-		vec3(0.31f, 0.648f, 0.78f) //specular
-	};
+	pointLights[0].position = glm::vec3(23.775629, -0.657954, 19.773302);
+	pointLights[0].linear = linear;
+	pointLights[0].quadratic = quadratic;
+	pointLights[0].ambient = glm::vec3(1.0f, 0.78f, 0.78f) * 0.1f;
+	pointLights[0].diffuse = glm::vec3(0.51f, 0.86f, 1.0f);
+	pointLights[0].specular = glm::vec3(0.31f, 0.648f, 0.78f);
 
-	PointLight p2 = {
-		vec3(23.775629, -0.657954, 19.773302),
-		1.0,
-		linear,
-		quadratic,
-		vec3(1.0f, 0.78f, 0.78f) * 0.1f,
-		vec3(0.51f, 0.86f, 1.0f),
-		vec3(0.31f, 0.648f, 0.78f)
-	};
 
-	pointLights[0] = p1;
-	pointLights[1] = p2;
+	pointLights[1].position = glm::vec3(23.775629, -0.657954, 19.773302);
+	pointLights[1].linear = linear;
+	pointLights[1].quadratic = 0.07;
+	pointLights[1].ambient = glm::vec3(1.0f, 0.78f, 0.78f) * 0.1f;
+	pointLights[1].diffuse = glm::vec3(0.51f, 0.86f, 1.0f);
+	pointLights[1].specular = glm::vec3(0.31f, 0.648f, 0.78f);
 
-}
+	pointLights[2].position = glm::vec3(5.506791f, -0.389102f, 8.479531f);
+	pointLights[2].linear = 0.01;
+	pointLights[2].quadratic = 0.0003;
+	pointLights[2].ambient = glm::vec3(1.0f, 0.78f, 0.78f) * 0.1f;
+	pointLights[2].diffuse = glm::vec3(1.0f, 0.52f, 0.25f);
+	pointLights[2].specular = glm::vec3(0.31f, 0.648f, 0.78f);
 
-void sendLightUnif(GLuint shader)
-{
 
-	for (GLuint i = 0; i < 2; i++)
-	{
-		std::string number = std::to_string(i);
-
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].position").c_str()), 3, &pointLights[i].position.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].ambient").c_str()), 3, &pointLights[i].ambient.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].diffuse").c_str()), 3, &pointLights[i].diffuse.x);
-		glUniform3fv(glGetUniformLocation(shader, ("pointLights[" + number + "].specular").c_str()), 3, &pointLights[i].specular.x);
-		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].constant").c_str()), pointLights[i].constant);
-		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].linear").c_str()), pointLights[i].linear);
-		glUniform1f(glGetUniformLocation(shader, ("pointLights[" + number + "].quadratic").c_str()), pointLights[i].quadratic);
-	}
 }
 
 
@@ -457,8 +439,6 @@ int main()
 
 	initGlobals();
 	initFBOs();
-	initLights();
-
 	/*Prepare ze battlefield*/
 
 	/*Vertex Shader*/
@@ -532,13 +512,11 @@ int main()
 
 	progShader.use();
 
-	int loc1 = glGetUniformLocation(progShader, "geom_Vert");
 	glUniform3fv(glGetUniformLocation(progShader, "geom_Vert"), cubeTexel.fVertices().size() * 6, (GLfloat*)&cubeTexel.fVertices()[0]);
 	glUniform1iv(glGetUniformLocation(progShader, "geom_Ind"), cubeTexel.fIndices().size(), (GLint*)&cubeTexel.fIndices()[0]);
 	glUniform1i(glGetUniformLocation(progShader, "geom_INum"), cubeTexel.fIndices().size());
 
-	mainShader.use();
-	sendLightUnif(mainShader);
+
 
 
 	mat4 passThroughcam = glm::identity<mat4>();
