@@ -76,6 +76,7 @@ mat4 getCamera()
 
 int keyPressed[512];
 bool captured = false;
+int drawMode = GL_FILL;
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	float amount = 0.01;
@@ -108,13 +109,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 
 
 		if (key == GLFW_KEY_1) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_POINT);
+			drawMode = GL_POINT;
 		}
 		if (key == GLFW_KEY_2) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+			drawMode = GL_LINE;
 		}
 		if (key == GLFW_KEY_3) {
-			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+			drawMode = GL_FILL;
 		}
 	}
 
@@ -154,6 +155,7 @@ void keyHeldCallback(double dt)
 
 	if (keyPressed[GLFW_KEY_X])
 		cam_pos += cam_top * cam_speed * dtf;
+
 	
 }
 
@@ -526,6 +528,7 @@ int main()
 	Shader depthvShader("vcfshaders\\simpleDepthMap.vert", Shader::VERTEX_SHADER);
 	Shader skyboxvShader("vcfshaders\\skyboxShader.vert", Shader::VERTEX_SHADER);
 	Shader basevShader("vcfshaders\\base.vert", Shader::VERTEX_SHADER);
+	Shader basicvShader("vcfshaders\\basic.vert", Shader::VERTEX_SHADER);
 
 	/*Fragment Shader*/
 	Shader fragShader("vcfshaders\\fractal\\dark.frag", Shader::FRAGMENT_SHADER);
@@ -533,6 +536,7 @@ int main()
 	Shader depthfShader("vcfshaders\\simpleDepthMap.frag", Shader::FRAGMENT_SHADER);
 	Shader skyboxfShader("vcfshaders\\skyboxShader.frag", Shader::FRAGMENT_SHADER);
 	Shader basefShader("vcfshaders\\base.frag", Shader::FRAGMENT_SHADER);
+	Shader basicfShader("vcfshaders\\basic.frag", Shader::FRAGMENT_SHADER);
 
 	/*Compute Shader*/
 	Shader compShader("vcfshaders\\rmd.comp", Shader::COMPUTE_SHADER);
@@ -545,6 +549,7 @@ int main()
 	ProgramShader mainShader(mainvShader, mainfShader);
 	ProgramShader depthShader(depthvShader, depthfShader);
 	ProgramShader baseShader(basevShader, basefShader);
+	ProgramShader basicShader(basicvShader, basicfShader);
 	//ProgramShader skyboxShader(skyboxvShader, skyboxfShader);
 
 
@@ -560,6 +565,8 @@ int main()
 	Terra terrain(512, 512, R"(Textures\Map.png)");
 	//Terra terrain(512, 512, R"(Textures\Map2.tif)");
 
+
+	Model pom("Models\\pom.obj");
 
 	/*Model bolly("Models\\sphere.obj");
 	bolly.loadMeshes(0, 0);*/
@@ -699,6 +706,7 @@ int main()
 			value_ptr(computeLightSpaceTrMatrix()));
 
 		model = mat4(1.0);
+		mat4 id(1.0);
 		glUniformMatrix4fv(glGetUniformLocation(depthShader, "model"),1, GL_FALSE, &model[0][0]);
 
 #if !debug_LightDepth
@@ -711,6 +719,8 @@ int main()
 
 #if !debug_LightDepth
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+		glPolygonMode(GL_FRONT_AND_BACK, drawMode);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -768,6 +778,7 @@ int main()
 
 
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		glViewport(0, 0, (int)winWidth, (int)winHeight);
 		baseShader.use();
 		glUniform1i(glGetUniformLocation(baseShader, "t_albedo"), 0);
@@ -775,8 +786,11 @@ int main()
 		glUniform1f(glGetUniformLocation(baseShader, "time"), currentTime);
 		texbl.bindTexture(0);
 		tSnow.bindTexture(2);
-		mat4 id(1.0);
+		
 		glUniformMatrix4fv(glGetUniformLocation(baseShader, "mvp"), 1, GL_FALSE, &id[0][0]);
+
+		glUniform3fv(glGetUniformLocation(baseShader, "forward"), 1, glm::value_ptr(cam_forward));
+
 
 		plane.draw();
 

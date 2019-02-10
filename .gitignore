@@ -15,3 +15,6 @@
 *.ipch
 *.opendb
 /KatEngine/Models/cuby.ply
+/KatEngine/KatEngine.exe
+/KatEngine/glfw3.dll
+/KatEngine/assimp-vc140-mt.dll

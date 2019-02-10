@@ -150,7 +150,7 @@ void main()
 	color +=  min(ambientPoint + diffusePoint + specularPoint, 1.0f);
 
 	float snow = dot(vec3(0,1,0), v_v4Normal.xyz);
-	snow += pow(1.0 - v_v4Position.y,5.0);
+	snow += pow(1.0 - v_v4Position.y,5.0) + 0.3;
 	snow = min(snow, 1.0);
 
 	color = color * (1-snow) + snow * vec3(1.0,1.0,1.0);

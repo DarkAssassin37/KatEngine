@@ -8,6 +8,7 @@ uniform sampler2D t_albedo;
 uniform sampler2D t_normal;
 uniform sampler2D t_roughness;
 uniform sampler2D t_metallic;
+uniform vec3 forward;
 
 uniform float time;
 
@@ -31,11 +32,15 @@ void main()
 	float speed1 = 0.1;
 	vec3 snow = vec3(0.0f);
 
-	snow += texture(t_roughness, v_texCoord + dir * speed1 * time).xyz;
-	snow += texture(t_roughness, v_texCoord * 0.85 + dir * speed1 * time).xyz;
-	snow += texture(t_roughness, v_texCoord * 0.7 + dir * speed1 * time).xyz;
-	snow += texture(t_roughness, v_texCoord * 0.5 + dir * speed1 * time).xyz;
-	snow += texture(t_roughness, v_texCoord * 0.3 + dir * speed1 * time).xyz;
+	float snow_speed = abs(dot(forward, vec3(0,1,0)));
+	snow_speed = 1.0 - snow_speed;
+	vec2 snowTexCoord = v_texCoord + dot(forward, vec3(1,0,0)) * vec2(1.0,0.0);
+
+	snow += texture(t_roughness, snowTexCoord + dir * speed1 * time * snow_speed).xyz;
+	snow += texture(t_roughness, snowTexCoord * 0.85 + dir * speed1 * time * snow_speed).xyz;
+	snow += texture(t_roughness, snowTexCoord * 0.7 + dir * speed1 * time * snow_speed).xyz;
+	snow += texture(t_roughness, snowTexCoord * 0.5 + dir * speed1 * time * snow_speed).xyz;
+	snow += texture(t_roughness, snowTexCoord * 0.3 + dir * speed1 * time * snow_speed).xyz;
 
 	vec3 snowcolor = vec3(0.8);
 
